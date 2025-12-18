@@ -2,7 +2,7 @@
 
 import { useNavActions } from './hooks/useNavActions';
 import { Button } from '@/components';
-import { Play, Download, Upload, Settings } from 'lucide-react';
+import { Play, Download, Upload, Settings, FilePlus } from 'lucide-react';
 
 export function NavActions() {
   const {
@@ -17,10 +17,22 @@ export function NavActions() {
     importError,
     fileInputRef,
     onOpenSettings,
+    onNewPrompt,
   } = useNavActions();
 
   return (
     <div className="flex items-center gap-2">
+      {/* New Prompt button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onNewPrompt}
+        icon={<FilePlus className="h-4 w-4" />}
+        title="Start a new prompt"
+      >
+        New
+      </Button>
+
       {/* Export button */}
       <Button
         variant="ghost"

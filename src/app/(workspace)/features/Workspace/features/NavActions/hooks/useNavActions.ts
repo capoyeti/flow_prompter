@@ -127,6 +127,30 @@ export function useNavActions() {
     openSettingsModal();
   }, [openSettingsModal]);
 
+  // Handle New Prompt - reset to fresh state
+  const handleNewPrompt = useCallback(() => {
+    // Create a fresh untitled prompt
+    const newPrompt: Prompt = {
+      id: 'temp-' + Date.now(),
+      projectId: '',
+      name: 'Untitled',
+      contentMarkdown: '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setCurrentPrompt(newPrompt);
+
+    // Clear all supplementary content
+    setIntent('');
+    setGuardrails('');
+    setExamples([]);
+
+    // Clear history and last sent prompt (completedRuns are cleared by setCurrentPrompt)
+    const { clearHistory, setLastSentPrompt } = useExecutionStore.getState();
+    clearHistory();
+    setLastSentPrompt('');
+  }, [setCurrentPrompt, setIntent, setGuardrails, setExamples]);
+
   return {
     // Run
     canExecute,
@@ -146,5 +170,8 @@ export function useNavActions() {
 
     // Settings
     onOpenSettings: handleOpenSettings,
+
+    // New Prompt
+    onNewPrompt: handleNewPrompt,
   };
 }
