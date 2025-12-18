@@ -98,9 +98,6 @@ export function useExecutePrompt() {
       return;
     }
 
-    // Push current state to history before running
-    pushHistory('user', 'Run');
-
     // Build the combined prompt with intent, examples, and guardrails
     const { fullPrompt } = buildPrompt({
       content: currentPrompt.contentMarkdown,
@@ -114,6 +111,9 @@ export function useExecutePrompt() {
 
     // Execute all selected models in parallel with the same combined prompt
     await Promise.all(selectedModelIds.map((modelId) => executeModel(modelId, fullPrompt)));
+
+    // Push to history AFTER execution completes so we capture the results
+    pushHistory('user', 'Run');
   }, [selectedModelIds, executeModel, currentPrompt, promptIntent, promptExamples, promptGuardrails, setLastSentPrompt, pushHistory]);
 
   return {

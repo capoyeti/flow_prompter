@@ -177,6 +177,9 @@ export const useExecutionStore = create<ExecutionState & ExecutionActions>()(
     deselectModel: (modelId) =>
       set((state) => {
         state.selectedModelIds = state.selectedModelIds.filter((id) => id !== modelId);
+        // Clear results for deselected model
+        state.activeRuns.delete(modelId);
+        state.completedRuns.delete(modelId);
       }),
 
     toggleModel: (modelId) =>
@@ -184,6 +187,9 @@ export const useExecutionStore = create<ExecutionState & ExecutionActions>()(
         const index = state.selectedModelIds.indexOf(modelId);
         if (index >= 0) {
           state.selectedModelIds.splice(index, 1);
+          // Clear results for deselected model
+          state.activeRuns.delete(modelId);
+          state.completedRuns.delete(modelId);
         } else {
           state.selectedModelIds.push(modelId);
         }
@@ -191,6 +197,12 @@ export const useExecutionStore = create<ExecutionState & ExecutionActions>()(
 
     setSelectedModels: (modelIds) =>
       set((state) => {
+        // Clear results for models being removed
+        const removedModelIds = state.selectedModelIds.filter((id) => !modelIds.includes(id));
+        removedModelIds.forEach((modelId) => {
+          state.activeRuns.delete(modelId);
+          state.completedRuns.delete(modelId);
+        });
         state.selectedModelIds = modelIds;
       }),
 
@@ -328,12 +340,24 @@ export const useExecutionStore = create<ExecutionState & ExecutionActions>()(
       set((state) => {
         if (!state.currentPrompt) return;
 
-        // Capture full snapshot of all prompt parts
+        // Convert completedRuns Map to array for snapshot
+        const completedRunsArray = Array.from(state.completedRuns.values()).map((run) => ({
+          modelId: run.modelId,
+          output: run.output,
+          thinking: run.thinking,
+          status: run.status,
+          errorMessage: run.errorMessage,
+          latencyMs: run.latencyMs,
+        }));
+
+        // Capture full snapshot of all prompt parts including execution results
         const snapshot: PromptSnapshot = {
           content: state.currentPrompt.contentMarkdown,
           intent: state.promptIntent,
           examples: state.promptExamples.map((ex) => ({ ...ex })),
           guardrails: state.promptGuardrails,
+          selectedModelIds: [...state.selectedModelIds],
+          completedRuns: completedRunsArray,
         };
 
         const newVersion: PromptVersion = {

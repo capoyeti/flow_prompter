@@ -12,12 +12,24 @@ export interface PromptExample {
 // Suggestion target types for assistant multi-target updates
 export type SuggestionTarget = 'prompt' | 'intent' | 'examples' | 'guardrails';
 
+// Completed run snapshot for history (serializable version)
+export interface CompletedRunSnapshot {
+  modelId: string;
+  output: string;
+  thinking?: string;
+  status: 'completed' | 'error';
+  errorMessage?: string;
+  latencyMs?: number;
+}
+
 // Unified snapshot of all prompt parts for history tracking
 export interface PromptSnapshot {
   content: string;
   intent: string;
   examples: PromptExample[];
   guardrails: string;
+  selectedModelIds: string[];
+  completedRuns: CompletedRunSnapshot[];
 }
 
 // Which part of the prompt changed
