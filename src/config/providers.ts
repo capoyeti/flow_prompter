@@ -177,47 +177,37 @@ export function getProviderBgColor(provider: ProviderType): string {
   return colors[provider];
 }
 
-// Card color config for output cards
+// Card color config for output cards - white cards with colored borders
 export interface CardColors {
-  // Base background color (darker)
-  bg: string;
-  // Lighter edge tint
-  edgeTint: string;
-  // Header/title text color
-  title: string;
-  // Body text color
-  body: string;
-  // Accent for icons/highlights
-  accent: string;
-  // Border subtle color
+  // Border color (provider accent)
   border: string;
+  // Title text color (matches border)
+  title: string;
+  // Icon/accent color
+  accent: string;
+  // Subtle background tint for thinking section
+  tint: string;
 }
 
 export function getProviderCardColors(provider: ProviderType): CardColors {
   const colors: Record<ProviderType, CardColors> = {
     openai: {
-      bg: '#1a3a1a',
-      edgeTint: '#2d5a2d',
-      title: '#86efac',
-      body: '#e8f5e8',
-      accent: '#4ade80',
-      border: '#22763a',
+      border: '#22c55e',
+      title: '#15803d',
+      accent: '#22c55e',
+      tint: '#f0fdf4',
     },
     anthropic: {
-      bg: '#3d2815',
-      edgeTint: '#5a3d20',
-      title: '#fcd9a0',
-      body: '#fef3e2',
-      accent: '#fb923c',
-      border: '#b45320',
+      border: '#f97316',
+      title: '#c2410c',
+      accent: '#f97316',
+      tint: '#fff7ed',
     },
     google: {
-      bg: '#1a2545',
-      edgeTint: '#2a3a60',
-      title: '#a5c8fd',
-      body: '#e8f0fe',
-      accent: '#60a5fa',
-      border: '#3060bf',
+      border: '#3b82f6',
+      title: '#1d4ed8',
+      accent: '#3b82f6',
+      tint: '#eff6ff',
     },
   };
   return colors[provider];

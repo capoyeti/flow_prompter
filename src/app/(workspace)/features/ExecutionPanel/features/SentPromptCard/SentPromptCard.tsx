@@ -13,53 +13,55 @@ export function SentPromptCard({ prompt }: SentPromptCardProps) {
   if (!prompt) return null;
 
   return (
-    <div className="bg-neutral-50 border border-neutral-200 rounded-lg overflow-hidden">
-      <div
-        onClick={toggleExpanded}
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-neutral-100 transition-colors cursor-pointer"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleExpanded();
-          }
-        }}
-      >
+    <div
+      className="bg-white/50 border border-neutral-200 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 hover:bg-white"
+      onClick={toggleExpanded}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleExpanded();
+        }
+      }}
+    >
+      <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-neutral-500" />
+            <ChevronDown className="h-4 w-4 text-neutral-400" />
           ) : (
-            <ChevronRight className="h-4 w-4 text-neutral-500" />
+            <ChevronRight className="h-4 w-4 text-neutral-400" />
           )}
-          <span className="text-sm font-medium text-neutral-700">Sent Prompt</span>
+          <span className="text-sm font-semibold text-neutral-900">Sent Prompt</span>
         </div>
         <button
           onClick={(e) => {
             e.stopPropagation();
             copyToClipboard();
           }}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200 rounded transition-colors"
+          className="p-1.5 rounded-lg transition-colors hover:bg-neutral-100 text-neutral-400"
           title="Copy full prompt"
         >
           {copied ? (
-            <>
-              <Check className="h-3 w-3" />
-              <span>Copied</span>
-            </>
+            <Check className="h-4 w-4 text-green-500" />
           ) : (
-            <>
-              <Copy className="h-3 w-3" />
-              <span>Copy</span>
-            </>
+            <Copy className="h-4 w-4" />
           )}
         </button>
       </div>
       {isExpanded && (
-        <div className="px-4 pb-4">
-          <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono bg-white border border-neutral-200 rounded p-3 max-h-64 overflow-y-auto">
+        <div className="px-4 pb-4 border-t border-neutral-100">
+          <pre className="text-sm text-neutral-700 whitespace-pre-wrap font-mono pt-3">
             {prompt}
           </pre>
+        </div>
+      )}
+      {!isExpanded && (
+        <div className="px-4 pb-3 -mt-1">
+          <p className="text-neutral-500 text-sm line-clamp-1">
+            {prompt.slice(0, 100)}
+            {prompt.length > 100 && '...'}
+          </p>
         </div>
       )}
     </div>

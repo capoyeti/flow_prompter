@@ -38,11 +38,15 @@ export function ExecutionPanel() {
           </div>
         )}
       </div>
-      <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
-        <SentPromptCard prompt={lastSentPrompt} />
-        {runs.map((run) => (
-          <OutputCard key={run.modelId} run={run} />
-        ))}
+      <div className="flex-1 flex flex-col gap-3 overflow-y-auto">
+        <div className="max-w-xl space-y-4 pl-1 pb-4">
+          <SentPromptCard prompt={lastSentPrompt} />
+          <div className="space-y-5">
+            {runs.map((run) => (
+              <OutputCard key={run.modelId} run={run} />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
