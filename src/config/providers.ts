@@ -21,10 +21,12 @@ export interface ModelConfig {
   contextWindow: number;
   capabilities: ProviderCapabilities;
   isDefault?: boolean;
+  /** Intelligence tier: 1 = most capable, 2 = strong, 3 = fast/efficient */
+  tier: 1 | 2 | 3;
 }
 
 export const MODELS: ModelConfig[] = [
-  // OpenAI Models
+  // OpenAI Models (ordered by tier)
   {
     id: 'gpt-5.2',
     provider: 'openai',
@@ -41,6 +43,7 @@ export const MODELS: ModelConfig[] = [
       maxOutputTokens: 128000,
     },
     isDefault: true,
+    tier: 1, // Most capable
   },
   {
     id: 'gpt-5-mini',
@@ -57,6 +60,7 @@ export const MODELS: ModelConfig[] = [
       supportsMaxTokens: true,
       maxOutputTokens: 32000,
     },
+    tier: 2, // Strong
   },
   {
     id: 'gpt-5-nano',
@@ -73,9 +77,27 @@ export const MODELS: ModelConfig[] = [
       supportsMaxTokens: true,
       maxOutputTokens: 16000,
     },
+    tier: 3, // Fast/efficient
   },
 
-  // Anthropic Models
+  // Anthropic Models (ordered by tier)
+  {
+    id: 'claude-opus-4-5-20251101',
+    provider: 'anthropic',
+    name: 'claude-opus-4-5-20251101',
+    displayName: 'Claude Opus 4.5',
+    contextWindow: 200000,
+    capabilities: {
+      supportsStreaming: true,
+      supportsThinking: true,
+      supportsTemperature: true,
+      temperatureRange: { min: 0, max: 1, default: 1 },
+      supportsSystemPrompt: true,
+      supportsMaxTokens: true,
+      maxOutputTokens: 64000,
+    },
+    tier: 1, // Most capable
+  },
   {
     id: 'claude-sonnet-4-5-20250929',
     provider: 'anthropic',
@@ -92,25 +114,27 @@ export const MODELS: ModelConfig[] = [
       maxOutputTokens: 64000,
     },
     isDefault: true,
+    tier: 2, // Strong
   },
+
+  // Google Models (ordered by tier)
   {
-    id: 'claude-opus-4-5-20251101',
-    provider: 'anthropic',
-    name: 'claude-opus-4-5-20251101',
-    displayName: 'Claude Opus 4.5',
+    id: 'gemini-3-pro-preview',
+    provider: 'google',
+    name: 'gemini-3-pro-preview',
+    displayName: 'Gemini 3 Pro',
     contextWindow: 200000,
     capabilities: {
       supportsStreaming: true,
       supportsThinking: true,
       supportsTemperature: true,
-      temperatureRange: { min: 0, max: 1, default: 1 },
+      temperatureRange: { min: 0, max: 2, default: 1 },
       supportsSystemPrompt: true,
       supportsMaxTokens: true,
-      maxOutputTokens: 64000,
+      maxOutputTokens: 65536,
     },
+    tier: 1, // Most capable
   },
-
-  // Google Models
   {
     id: 'gemini-3-flash-preview',
     provider: 'google',
@@ -127,22 +151,7 @@ export const MODELS: ModelConfig[] = [
       maxOutputTokens: 65536,
     },
     isDefault: true,
-  },
-  {
-    id: 'gemini-3-pro-preview',
-    provider: 'google',
-    name: 'gemini-3-pro-preview',
-    displayName: 'Gemini 3 Pro',
-    contextWindow: 200000,
-    capabilities: {
-      supportsStreaming: true,
-      supportsThinking: true,
-      supportsTemperature: true,
-      temperatureRange: { min: 0, max: 2, default: 1 },
-      supportsSystemPrompt: true,
-      supportsMaxTokens: true,
-      maxOutputTokens: 65536,
-    },
+    tier: 3, // Fast/efficient
   },
 ];
 
@@ -175,6 +184,58 @@ export function getProviderBgColor(provider: ProviderType): string {
     google: 'bg-blue-50',
   };
   return colors[provider];
+}
+
+/** Get all tier-1 (most capable) models */
+export function getTier1Models(): ModelConfig[] {
+  return MODELS.filter((m) => m.tier === 1);
+}
+
+/** Get the most capable model for a provider */
+export function getMostCapableModel(provider: ProviderType): ModelConfig | undefined {
+  return MODELS.filter((m) => m.provider === provider).sort((a, b) => a.tier - b.tier)[0];
+}
+
+/**
+ * Get the best available model based on which providers have API keys.
+ * Prioritizes tier-1 models from available providers.
+ * @param availableProviders - Array of providers that have API keys configured
+ */
+export function getBestAvailableModel(availableProviders: ProviderType[]): ModelConfig | undefined {
+  if (availableProviders.length === 0) return undefined;
+
+  // Get all tier-1 models from available providers, sorted by our preferred order
+  const providerPriority: ProviderType[] = ['anthropic', 'openai', 'google'];
+
+  for (const provider of providerPriority) {
+    if (availableProviders.includes(provider)) {
+      const bestForProvider = getMostCapableModel(provider);
+      if (bestForProvider) return bestForProvider;
+    }
+  }
+
+  // Fallback: any model from available providers
+  return MODELS.find((m) => availableProviders.includes(m.provider));
+}
+
+/** Get models grouped by provider, sorted by tier within each group */
+export function getModelsGroupedByProvider(): Record<ProviderType, ModelConfig[]> {
+  const grouped: Record<ProviderType, ModelConfig[]> = {
+    anthropic: [],
+    openai: [],
+    google: [],
+  };
+
+  for (const model of MODELS) {
+    grouped[model.provider].push(model);
+  }
+
+  // Sort each group by tier
+  for (const provider of Object.keys(grouped) as ProviderType[]) {
+    grouped[provider].sort((a, b) => a.tier - b.tier);
+  }
+
+  return grouped;
 }
 
 // Card color config for output cards - white cards with colored borders

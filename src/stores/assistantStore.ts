@@ -23,17 +23,11 @@ interface AssistantState {
 
   // Active suggestions that can be applied
   pendingSuggestions: PromptSuggestion[];
-
-  // Selected model for the assistant (can be changed mid-conversation)
-  selectedModelId: string;
 }
 
 interface AssistantActions {
   // Input management
   setCurrentInput: (input: string) => void;
-
-  // Model selection
-  setSelectedModelId: (modelId: string) => void;
 
   // Conversation management
   addUserMessage: (content: string) => AssistantMessage;
@@ -59,9 +53,6 @@ interface AssistantActions {
   reset: () => void;
 }
 
-// Default to Claude Opus 4.5 for best quality assistant responses
-const DEFAULT_ASSISTANT_MODEL = 'claude-opus-4-5-20251101';
-
 const initialState: AssistantState = {
   conversation: [],
   currentInput: '',
@@ -69,7 +60,6 @@ const initialState: AssistantState = {
   streamingContent: '',
   executionSnapshot: null,
   pendingSuggestions: [],
-  selectedModelId: DEFAULT_ASSISTANT_MODEL,
 };
 
 export const useAssistantStore = create<AssistantState & AssistantActions>()(
@@ -80,12 +70,6 @@ export const useAssistantStore = create<AssistantState & AssistantActions>()(
     setCurrentInput: (input) =>
       set((state) => {
         state.currentInput = input;
-      }),
-
-    // Model selection
-    setSelectedModelId: (modelId) =>
-      set((state) => {
-        state.selectedModelId = modelId;
       }),
 
     // Conversation management
@@ -261,6 +245,25 @@ ${snapshot.selectedModels.map((m) => `- ${m.name} (${m.provider})`).join('\n')}
 ### Latest Outputs
 ${outputsSection}
 
+${snapshot.latestEvaluation ? `### Latest Evaluation Results
+The outputs were evaluated with the following results:
+
+Evaluation criteria: "${snapshot.latestEvaluation.evaluationPrompt}"
+
+${snapshot.latestEvaluation.results
+  .map((r) => {
+    let evalSection = `#### ${r.modelId}: Score ${r.score}/100\n`;
+    evalSection += `**Reasoning:** ${r.reasoning}\n`;
+    if (r.strengths && r.strengths.length > 0) {
+      evalSection += `**Strengths:**\n${r.strengths.map(s => `  + ${s}`).join('\n')}\n`;
+    }
+    if (r.weaknesses && r.weaknesses.length > 0) {
+      evalSection += `**Weaknesses:**\n${r.weaknesses.map(w => `  - ${w}`).join('\n')}\n`;
+    }
+    return evalSection;
+  })
+  .join('\n')}
+` : ''}
 ---
 
 ## Your Responsibilities

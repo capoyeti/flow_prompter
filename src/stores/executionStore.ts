@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { enableMapSet } from 'immer';
-import type { Prompt, RunParameters, ExecutionSnapshot, PromptVersion, PromptExample, ExampleType, PromptSnapshot, ChangedPart, ExecutionErrorType } from '@/types/models';
+import type { Prompt, RunParameters, ExecutionSnapshot, PromptVersion, PromptExample, ExampleType, PromptSnapshot, ChangedPart, ExecutionErrorType, EvaluationSnapshot } from '@/types/models';
 import type { StreamingState } from '@/types/streaming';
 import { initialStreamingState } from '@/types/streaming';
 import { ModelConfig, getModelById, ProviderType } from '@/config/providers';
@@ -99,7 +99,9 @@ interface ExecutionActions {
   getExecutionSnapshot: () => ExecutionSnapshot;
 
   // History management
-  pushHistory: (source: 'user' | 'assistant', label?: string, changedPart?: ChangedPart) => void;
+  pushHistory: (source: 'user' | 'assistant', label?: string, changedPart?: ChangedPart, evaluation?: EvaluationSnapshot) => void;
+  updateLastHistoryEvaluation: (evaluation: EvaluationSnapshot) => void;
+  getViewedHistoryEvaluation: () => EvaluationSnapshot | null;
   viewHistoryVersion: (index: number) => void;
   restoreHistoryVersion: (index: number) => void;
   clearHistory: () => void;
@@ -340,7 +342,7 @@ export const useExecutionStore = create<ExecutionState & ExecutionActions>()(
     },
 
     // History management
-    pushHistory: (source, label, changedPart) =>
+    pushHistory: (source, label, changedPart, evaluation) =>
       set((state) => {
         if (!state.currentPrompt) return;
 
@@ -364,6 +366,7 @@ export const useExecutionStore = create<ExecutionState & ExecutionActions>()(
           guardrails: state.promptGuardrails,
           selectedModelIds: [...state.selectedModelIds],
           completedRuns: completedRunsArray,
+          evaluation: evaluation ?? undefined,
         };
 
         const newVersion: PromptVersion = {
@@ -378,6 +381,22 @@ export const useExecutionStore = create<ExecutionState & ExecutionActions>()(
         state.promptHistory.push(newVersion);
         state.historyViewIndex = -1; // Reset to latest
       }),
+
+    updateLastHistoryEvaluation: (evaluation) =>
+      set((state) => {
+        if (state.promptHistory.length > 0) {
+          const lastIndex = state.promptHistory.length - 1;
+          state.promptHistory[lastIndex].snapshot.evaluation = evaluation;
+        }
+      }),
+
+    getViewedHistoryEvaluation: () => {
+      const state = get();
+      if (state.historyViewIndex >= 0 && state.historyViewIndex < state.promptHistory.length) {
+        return state.promptHistory[state.historyViewIndex].snapshot.evaluation ?? null;
+      }
+      return null; // Live view - use current evaluation from evaluatorStore
+    },
 
     viewHistoryVersion: (index) =>
       set((state) => {

@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useWorkspace } from './hooks/useWorkspace';
+import { usePanelModel } from './hooks/usePanelModel';
 import { PromptEditor } from '../PromptEditor/PromptEditor';
 import { ModelSelector } from '../ModelSelector/ModelSelector';
 import { IntentPanel } from '../IntentPanel/IntentPanel';
@@ -9,13 +10,23 @@ import { ExamplesPanel } from '../ExamplesPanel/ExamplesPanel';
 import { GuardrailsPanel } from '../GuardrailsPanel/GuardrailsPanel';
 import { ExecutionPanel } from '../ExecutionPanel/ExecutionPanel';
 import { PromptAssistant } from '../PromptAssistant/PromptAssistant';
+import { Evaluator } from '../Evaluator/Evaluator';
 import { NavActions } from './features/NavActions/NavActions';
 import { Button, SlideOverPanel, SettingsModal } from '@/components';
 import { Wand2 } from 'lucide-react';
+import { getProviderColor } from '@/config/providers';
 
 export function Workspace() {
   const { handleKeyDown, isAssistantOpen, toggleAssistant, closeAssistant } =
     useWorkspace();
+
+  const {
+    selectedModelId: panelModelId,
+    setSelectedModelId: setPanelModelId,
+    selectedModel: panelModel,
+    tier1Models,
+    isModelAvailable,
+  } = usePanelModel();
 
   return (
     <div
@@ -87,14 +98,59 @@ export function Workspace() {
         </div>
       </div>
 
-      {/* Prompt Assistant Flyout */}
+      {/* Evaluate & Assist Flyout */}
       <SlideOverPanel
         isOpen={isAssistantOpen}
         onClose={closeAssistant}
-        title="Prompt Assistant"
-        width="40%"
+        title="Evaluate & Assist"
+        width="65%"
+        headerActions={
+          <select
+            value={panelModelId}
+            onChange={(e) => setPanelModelId(e.target.value)}
+            className="text-sm px-3 py-1.5 border border-neutral-200 rounded-md bg-white
+                       focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent
+                       cursor-pointer"
+            title={panelModel?.displayName || 'Select model'}
+          >
+            {tier1Models.map((model) => {
+              const available = isModelAvailable(model);
+              return (
+                <option
+                  key={model.id}
+                  value={model.id}
+                  disabled={!available}
+                  className={available ? '' : 'text-neutral-400'}
+                >
+                  {model.displayName}
+                  {!available ? ' (no API key)' : ''}
+                </option>
+              );
+            })}
+          </select>
+        }
       >
-        <PromptAssistant isOpen={isAssistantOpen} />
+        <div className="flex h-full">
+          {/* Left Column: Evaluator */}
+          <div className="w-1/2 border-r border-neutral-200 flex flex-col">
+            <div className="flex-shrink-0 px-4 py-2 bg-neutral-50 border-b border-neutral-200">
+              <h3 className="text-sm font-semibold text-neutral-700">Evaluator</h3>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <Evaluator modelId={panelModelId} />
+            </div>
+          </div>
+
+          {/* Right Column: Assistant */}
+          <div className="w-1/2 flex flex-col">
+            <div className="flex-shrink-0 px-4 py-2 bg-neutral-50 border-b border-neutral-200">
+              <h3 className="text-sm font-semibold text-neutral-700">Assistant</h3>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <PromptAssistant isOpen={isAssistantOpen} modelId={panelModelId} />
+            </div>
+          </div>
+        </div>
       </SlideOverPanel>
     </div>
   );

@@ -15,6 +15,7 @@ export const STORAGE_KEYS = {
   API_KEY_GOOGLE: 'flowprompt:apiKey:google',
   ONBOARDING_COMPLETE: 'flowprompt:onboardingComplete',
   THEME: 'flowprompt:theme',
+  PANEL_MODEL_ID: 'flowprompt:panelModelId', // Shared model for Evaluator & Assistant panel
 } as const;
 
 // Keyboard shortcuts
@@ -41,4 +42,11 @@ export const STREAMING = {
 export const HISTORY = {
   MAX_RUNS_DISPLAYED: 50,
   MAX_RUNS_PER_PROMPT: 100,
+} as const;
+
+// Evaluation
+export const EVALUATION = {
+  DEFAULT_MODEL_ID: 'claude-sonnet-4-5-20250929',
+  SCALE_MIN: 0,
+  SCALE_MAX: 100,
 } as const;

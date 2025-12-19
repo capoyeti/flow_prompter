@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useExecutionStore, useAssistantStore, useSettingsStore } from '@/stores';
+import { useExecutionStore, useAssistantStore, useSettingsStore, useEvaluatorStore } from '@/stores';
 import { useExecutePrompt } from '../../../hooks/useExecutePrompt';
 import { STORAGE_KEYS } from '@/config/constants';
 
@@ -9,6 +9,7 @@ export function useWorkspace() {
   const { currentPrompt, selectedModelIds, isExecuting, getExecutionSnapshot, promptIntent, promptExamples, completedRuns } =
     useExecutionStore();
   const { updateExecutionSnapshot } = useAssistantStore();
+  const { currentEvaluation } = useEvaluatorStore();
   const {
     hasCompletedOnboarding,
     hasAnyApiKey,
@@ -80,7 +81,12 @@ export function useWorkspace() {
   // Update assistant's execution snapshot when execution state changes
   useEffect(() => {
     const snapshot = getExecutionSnapshot();
-    updateExecutionSnapshot(snapshot);
+    // Augment with evaluation data so assistant can see evaluation results
+    const augmentedSnapshot = {
+      ...snapshot,
+      latestEvaluation: currentEvaluation ?? undefined,
+    };
+    updateExecutionSnapshot(augmentedSnapshot);
   }, [
     currentPrompt?.contentMarkdown,
     selectedModelIds,
@@ -88,6 +94,7 @@ export function useWorkspace() {
     promptExamples,
     completedRuns,
     isExecuting,
+    currentEvaluation,
     getExecutionSnapshot,
     updateExecutionSnapshot,
   ]);

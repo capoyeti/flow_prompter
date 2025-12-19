@@ -29,6 +29,22 @@ export interface CompletedRunSnapshot {
   latencyMs?: number;
 }
 
+// Evaluation result for a single model output
+export interface EvaluationResult {
+  modelId: string;
+  score: number; // 0-100
+  reasoning: string;
+  strengths?: string[];
+  weaknesses?: string[];
+}
+
+// Evaluation snapshot for history and context
+export interface EvaluationSnapshot {
+  evaluationPrompt: string;
+  results: EvaluationResult[];
+  evaluatedAt: number;
+}
+
 // Unified snapshot of all prompt parts for history tracking
 export interface PromptSnapshot {
   content: string;
@@ -37,6 +53,7 @@ export interface PromptSnapshot {
   guardrails: string;
   selectedModelIds: string[];
   completedRuns: CompletedRunSnapshot[];
+  evaluation?: EvaluationSnapshot;
 }
 
 // Which part of the prompt changed
@@ -142,6 +159,7 @@ export interface ExecutionSnapshot {
     output: string;
     status: RunStatus;
   }[];
+  latestEvaluation?: EvaluationSnapshot;
 }
 
 // Prompt version for history tracking (unified snapshot)

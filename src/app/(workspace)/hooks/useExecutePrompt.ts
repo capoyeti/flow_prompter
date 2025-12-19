@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useExecutionStore, useSettingsStore } from '@/stores';
+import { useExecutionStore, useSettingsStore, useEvaluatorStore } from '@/stores';
 import { getModelById, ProviderType } from '@/config/providers';
 import { buildPrompt } from '@/utils/prompt/buildPrompt';
 import { v4 as uuidv4 } from 'uuid';
@@ -32,6 +32,7 @@ export function useExecutePrompt() {
     pushHistory,
   } = useExecutionStore();
   const { getApiKey, isProviderAvailable } = useSettingsStore();
+  const { clearEvaluation } = useEvaluatorStore();
 
   const executeModel = useCallback(
     async (modelId: string, fullPrompt: string) => {
@@ -127,6 +128,9 @@ export function useExecutePrompt() {
       return;
     }
 
+    // Clear any previous evaluation results since we're running a new prompt
+    clearEvaluation();
+
     // Build the combined prompt with intent, examples, and guardrails
     const { fullPrompt } = buildPrompt({
       content: currentPrompt.contentMarkdown,
@@ -143,7 +147,7 @@ export function useExecutePrompt() {
 
     // Push to history AFTER execution completes so we capture the results
     pushHistory('user', 'Run');
-  }, [selectedModelIds, executeModel, currentPrompt, promptIntent, promptExamples, promptGuardrails, setLastSentPrompt, pushHistory]);
+  }, [selectedModelIds, executeModel, currentPrompt, promptIntent, promptExamples, promptGuardrails, setLastSentPrompt, pushHistory, clearEvaluation]);
 
   return {
     executeModel,
