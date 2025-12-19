@@ -47,7 +47,6 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   // Track the last value we set to avoid unnecessary updates
   const lastSetValue = useRef<string>(value);
-  const isInternalChange = useRef(false);
 
   const editor = useEditor({
     extensions: [
@@ -65,7 +64,6 @@ export function MarkdownEditor({
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
       const text = editor.getText();
-      isInternalChange.current = true;
       lastSetValue.current = text;
       onChange(text);
     },
@@ -79,30 +77,13 @@ export function MarkdownEditor({
 
   // Update content when value changes externally (not from typing)
   useEffect(() => {
-    console.log('[MarkdownEditor] Effect running:', {
-      hasEditor: !!editor,
-      isInternalChange: isInternalChange.current,
-      value: value?.slice(0, 50),
-      lastSetValue: lastSetValue.current?.slice(0, 50),
-      valueChanged: value !== lastSetValue.current,
-    });
-
     if (!editor) return;
 
-    // Skip if this change came from internal editing
-    if (isInternalChange.current) {
-      isInternalChange.current = false;
-      console.log('[MarkdownEditor] Skipping - internal change');
-      return;
-    }
-
     // Only update if value actually changed from what we last set
+    // This handles both internal changes (typing) and external changes (apply)
     if (value !== lastSetValue.current) {
-      console.log('[MarkdownEditor] Updating editor content');
       lastSetValue.current = value;
       editor.commands.setContent(textToHtml(value));
-    } else {
-      console.log('[MarkdownEditor] Skipping - value unchanged');
     }
   }, [editor, value]);
 

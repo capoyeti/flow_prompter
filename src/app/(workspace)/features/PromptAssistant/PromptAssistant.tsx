@@ -24,6 +24,7 @@ export function PromptAssistant({ isOpen, modelId }: PromptAssistantProps) {
     hasExecutionContext,
     applySuggestion,
     applyingId,
+    appliedIds,
     currentPromptContent,
   } = usePromptAssistant({ modelId });
 
@@ -165,6 +166,8 @@ export function PromptAssistant({ isOpen, modelId }: PromptAssistantProps) {
                         suggestion={segment.suggestion}
                         onApply={(s) => applySuggestion(s, originalPrompt)}
                         isApplying={applyingId === segment.suggestion.id}
+                        isApplied={appliedIds.has(segment.suggestion.id)}
+                        isAnyApplying={applyingId !== null}
                         isStale={
                           originalPrompt !== undefined &&
                           originalPrompt !== currentPromptContent

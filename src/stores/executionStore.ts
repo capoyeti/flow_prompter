@@ -158,8 +158,16 @@ export const useExecutionStore = create<ExecutionState & ExecutionActions>()(
 
     updatePromptContent: (content) =>
       set((state) => {
+        console.log('[executionStore] updatePromptContent called:', {
+          hasCurrentPrompt: !!state.currentPrompt,
+          newContentLength: content?.length,
+          newContentPreview: content?.slice(0, 100),
+        });
         if (state.currentPrompt) {
           state.currentPrompt.contentMarkdown = content;
+          console.log('[executionStore] Updated contentMarkdown');
+        } else {
+          console.error('[executionStore] No currentPrompt to update!');
         }
       }),
 

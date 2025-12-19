@@ -15,7 +15,7 @@ import { Evaluator } from '../Evaluator/Evaluator';
 import { HistoryTimeline } from '../PromptEditor/features/HistoryTimeline/HistoryTimeline';
 import { NavActions } from './features/NavActions/NavActions';
 import { Button, SlideOverPanel, SettingsModal } from '@/components';
-import { Wand2, Play } from 'lucide-react';
+import { Wand2, Play, Loader2 } from 'lucide-react';
 import { useExecutePrompt } from '../../hooks/useExecutePrompt';
 import { useExecutionStore, selectCanExecute } from '@/stores';
 
@@ -34,8 +34,9 @@ export function Workspace() {
   // Run button logic
   const { executeAll } = useExecutePrompt();
   const canExecute = useExecutionStore(selectCanExecute);
-  const { isExecuting, historyViewIndex, restoreHistoryVersion } = useExecutionStore();
+  const { isExecuting, historyViewIndex, restoreHistoryVersion, promptHistory } = useExecutionStore();
   const isViewingHistory = historyViewIndex >= 0;
+  const hasHistory = promptHistory.length > 0;
 
   const handleRun = useCallback(() => {
     if (canExecute) {
@@ -91,21 +92,6 @@ export function Workspace() {
         {/* Left side: Prompt Editor + Models */}
         <div className="w-1/2 border-r border-neutral-200 flex flex-col overflow-hidden">
           <div className="flex-1 p-4 flex flex-col gap-4 overflow-auto">
-            {/* Action bar: History + Run */}
-            <div className="flex-shrink-0 flex items-center">
-              <HistoryTimeline />
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleRun}
-                loading={isExecuting}
-                disabled={!canExecute}
-                icon={<Play className="h-4 w-4" />}
-                className="ml-auto"
-              >
-                Run
-              </Button>
-            </div>
             <div className="flex-shrink-0">
               <PromptEditor />
             </div>
@@ -124,10 +110,35 @@ export function Workspace() {
           </div>
         </div>
 
-        {/* Right side: Execution Outputs - scrollable */}
+        {/* Right side: Execution Outputs - scrollable with sticky header */}
         <div className="w-1/2 flex flex-col overflow-hidden">
+          {/* Sticky header with History, Outputs label, and Run button */}
+          <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white border-b border-neutral-200">
+            <div className="flex items-center gap-4">
+              <HistoryTimeline />
+              {!hasHistory && (
+                <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Outputs</h2>
+              )}
+              {isExecuting && (
+                <div className="flex items-center gap-1.5 text-sm text-neutral-500">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Running...</span>
+                </div>
+              )}
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleRun}
+              loading={isExecuting}
+              disabled={!canExecute}
+              icon={<Play className="h-4 w-4" />}
+            >
+              Run
+            </Button>
+          </div>
           <div className="flex-1 p-4 overflow-auto">
-            <ExecutionPanel />
+            <ExecutionPanel showHeader={false} />
           </div>
         </div>
       </div>

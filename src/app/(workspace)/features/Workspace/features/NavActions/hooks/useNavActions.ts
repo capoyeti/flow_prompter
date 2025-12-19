@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { useExecutionStore, selectCanExecute, useSettingsStore } from '@/stores';
+import { useExecutionStore, selectCanExecute, useSettingsStore, resetWorkspace } from '@/stores';
 import { useExecutePrompt } from '../../../../../hooks/useExecutePrompt';
 import { buildExportData, downloadExport } from '@/utils/exportImport/exportPrompt';
 import { importFromFile, ParsedImportData } from '@/utils/exportImport/importPrompt';
@@ -11,7 +11,6 @@ export function useNavActions() {
   const {
     currentPrompt,
     isExecuting,
-    updatePromptContent,
     setCurrentPrompt,
     promptIntent,
     setIntent,
@@ -20,9 +19,7 @@ export function useNavActions() {
     promptExamples,
     setExamples,
     completedRuns,
-    promptHistory,
     historyViewIndex,
-    viewHistoryVersion,
     restoreHistoryVersion,
   } = useExecutionStore();
   const canExecute = useExecutionStore(selectCanExecute);
@@ -67,6 +64,38 @@ export function useNavActions() {
     fileInputRef.current?.click();
   }, []);
 
+  // Apply imported data to the store
+  const applyImportData = useCallback((data: ParsedImportData) => {
+    // Reset everything first
+    resetWorkspace();
+
+    // Now apply imported data on top of fresh state
+    const newPrompt: Prompt = {
+      id: 'temp-' + Date.now(),
+      projectId: '',
+      name: data.promptName,
+      contentMarkdown: data.promptContent,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setCurrentPrompt(newPrompt);
+
+    // Set intent if provided
+    if (data.promptIntent) {
+      setIntent(data.promptIntent);
+    }
+
+    // Set guardrails if provided
+    if (data.promptGuardrails) {
+      setGuardrails(data.promptGuardrails);
+    }
+
+    // Set examples if provided
+    if (data.promptExamples && data.promptExamples.length > 0) {
+      setExamples(data.promptExamples);
+    }
+  }, [setCurrentPrompt, setIntent, setGuardrails, setExamples]);
+
   // Handle file selection for import
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -94,33 +123,7 @@ export function useNavActions() {
         event.target.value = '';
       }
     }
-  }, []);
-
-  // Apply imported data to the store
-  const applyImportData = useCallback((data: ParsedImportData) => {
-    // Create or update prompt
-    const newPrompt: Prompt = {
-      id: 'temp-' + Date.now(),
-      projectId: '',
-      name: data.promptName,
-      contentMarkdown: data.promptContent,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setCurrentPrompt(newPrompt);
-
-    // Set intent if provided, otherwise clear
-    setIntent(data.promptIntent || '');
-
-    // Set guardrails if provided, otherwise clear
-    setGuardrails(data.promptGuardrails || '');
-
-    // Set examples if provided, otherwise clear
-    setExamples(data.promptExamples || []);
-
-    // Note: We don't restore execution history to completedRuns
-    // as that would require re-running. Users can see it was imported.
-  }, [setCurrentPrompt, setIntent, setGuardrails, setExamples]);
+  }, [applyImportData]);
 
   // Handle Settings button click
   const handleOpenSettings = useCallback(() => {
@@ -129,27 +132,8 @@ export function useNavActions() {
 
   // Handle New Prompt - reset to fresh state
   const handleNewPrompt = useCallback(() => {
-    // Create a fresh untitled prompt
-    const newPrompt: Prompt = {
-      id: 'temp-' + Date.now(),
-      projectId: '',
-      name: 'Untitled',
-      contentMarkdown: '',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setCurrentPrompt(newPrompt);
-
-    // Clear all supplementary content
-    setIntent('');
-    setGuardrails('');
-    setExamples([]);
-
-    // Clear history and last sent prompt (completedRuns are cleared by setCurrentPrompt)
-    const { clearHistory, setLastSentPrompt } = useExecutionStore.getState();
-    clearHistory();
-    setLastSentPrompt('');
-  }, [setCurrentPrompt, setIntent, setGuardrails, setExamples]);
+    resetWorkspace();
+  }, []);
 
   return {
     // Run

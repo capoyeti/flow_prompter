@@ -3,6 +3,17 @@
 
 import type { SuggestionTarget, ExampleType, ExampleOperation } from '@/types/models';
 
+// Simple hash function for generating stable IDs
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(36);
+}
+
 export interface ParsedSuggestion {
   id: string;
   type: 'full_rewrite' | 'patch';
@@ -75,15 +86,20 @@ export function parseAssistantResponse(content: string): ParsedResponse {
       };
     }
 
+    // Generate stable ID based on content (so it doesn't change on re-render)
+    const proposedTrimmed = proposed.trim();
+    const rationaleTrimmed = rationale.trim();
+    const stableId = `suggestion-${simpleHash(proposedTrimmed + rationaleTrimmed + target + type)}-${suggestionCount++}`;
+
     segments.push({
       type: 'suggestion',
       suggestion: {
-        id: `suggestion-${Date.now()}-${suggestionCount++}`,
+        id: stableId,
         type,
         target,
         confidence,
-        proposed: proposed.trim(),
-        rationale: rationale.trim(),
+        proposed: proposedTrimmed,
+        rationale: rationaleTrimmed,
         exampleOperation,
       },
     });

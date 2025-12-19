@@ -20,6 +20,8 @@ interface SuggestionCardProps {
   suggestion: ParsedSuggestion;
   onApply: (suggestion: ParsedSuggestion) => void;
   isApplying?: boolean;
+  isApplied?: boolean;
+  isAnyApplying?: boolean;
   isStale?: boolean;
 }
 
@@ -46,6 +48,8 @@ export function SuggestionCard({
   suggestion,
   onApply,
   isApplying = false,
+  isApplied = false,
+  isAnyApplying = false,
   isStale = false,
 }: SuggestionCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -103,15 +107,28 @@ export function SuggestionCard({
             {suggestion.confidence}
           </span>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => onApply(suggestion)}
-          loading={isApplying}
-          icon={<Check className="h-3 w-3" />}
-        >
-          Apply
-        </Button>
+        {isApplied ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            icon={<Check className="h-3 w-3 text-green-600" />}
+            className="!text-green-600 !border-green-300 !bg-green-50"
+          >
+            Applied
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => onApply(suggestion)}
+            loading={isApplying}
+            disabled={isAnyApplying && !isApplying}
+            icon={<Check className="h-3 w-3" />}
+          >
+            Apply
+          </Button>
+        )}
       </div>
 
       {/* Proposed content preview/full */}

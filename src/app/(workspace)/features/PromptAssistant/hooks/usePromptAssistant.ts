@@ -30,21 +30,15 @@ export function usePromptAssistant(options: UsePromptAssistantOptions = {}) {
   // Use modelId from options if provided, otherwise fall back to default
   const selectedModelId = options.modelId ?? 'claude-opus-4-5-20251101';
 
-  const {
-    currentPrompt,
-    updatePromptContent,
-    setIntent,
-    setGuardrails,
-    addExample,
-    updateExample,
-    removeExample,
-  } = useExecutionStore();
+  const { currentPrompt } = useExecutionStore();
 
   const { getApiKey } = useSettingsStore();
 
   // Track which suggestion is currently being applied
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
+  // Track which suggestions have been applied (for checkmarks)
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
 
   const hasExecutionContext = !!executionSnapshot?.latestRuns?.length;
 
@@ -120,7 +114,21 @@ export function usePromptAssistant(options: UsePromptAssistantOptions = {}) {
   // Apply a suggestion to the appropriate part based on target
   const applySuggestion = useCallback(
     async (suggestion: ParsedSuggestion, originalContent?: string) => {
-      if (!currentPrompt) return;
+      console.log('[applySuggestion] Starting apply:', {
+        id: suggestion.id,
+        type: suggestion.type,
+        target: suggestion.target,
+        proposedLength: suggestion.proposed?.length,
+      });
+
+      // Get fresh state from store to avoid stale closure issues
+      const store = useExecutionStore.getState();
+      const freshPrompt = store.currentPrompt;
+
+      if (!freshPrompt) {
+        console.error('[applySuggestion] No currentPrompt!');
+        return;
+      }
 
       setApplyingId(suggestion.id);
       setApplyError(null);
@@ -128,84 +136,108 @@ export function usePromptAssistant(options: UsePromptAssistantOptions = {}) {
       try {
         const target = suggestion.target || 'prompt';
 
-        // For simple targets (intent, guardrails), we apply directly
-        // For prompt, we use the intelligent merging API
-        // For examples, we handle the operation type
-        // NOTE: History is NOT pushed here - history is only created on Run
+        // If viewing history, switch back to live view so user sees the applied change
+        const currentHistoryIndex = useExecutionStore.getState().historyViewIndex;
+        if (currentHistoryIndex >= 0) {
+          console.log('[applySuggestion] Switching from history view to live');
+          store.viewHistoryVersion(-1);
+        }
+
         if (target === 'intent') {
-          setIntent(suggestion.proposed);
+          console.log('[applySuggestion] Applying to intent');
+          store.setIntent(suggestion.proposed);
         } else if (target === 'guardrails') {
-          setGuardrails(suggestion.proposed);
+          console.log('[applySuggestion] Applying to guardrails');
+          store.setGuardrails(suggestion.proposed);
         } else if (target === 'examples' && suggestion.exampleOperation) {
+          console.log('[applySuggestion] Applying to examples:', suggestion.exampleOperation);
           const op = suggestion.exampleOperation;
           if (op.action === 'add' && op.exampleType) {
-            // Add example and then update its content
-            addExample(op.exampleType);
-            // Get fresh state from store (Zustand updates are synchronous)
+            store.addExample(op.exampleType);
             const freshExamples = useExecutionStore.getState().promptExamples;
             const lastExample = freshExamples[freshExamples.length - 1];
             if (lastExample) {
-              updateExample(lastExample.id, suggestion.proposed);
+              store.updateExample(lastExample.id, suggestion.proposed);
             }
           } else if (op.action === 'update' && op.exampleId) {
-            updateExample(op.exampleId, suggestion.proposed);
+            store.updateExample(op.exampleId, suggestion.proposed);
           } else if (op.action === 'remove' && op.exampleId) {
-            removeExample(op.exampleId);
+            store.removeExample(op.exampleId);
           }
         } else {
-          // For prompt target, use the intelligent merging API
-          // Get the API key for the model's provider
-          const modelConfig = getModelById(selectedModelId);
-          const apiKey = modelConfig ? getApiKey(modelConfig.provider) : undefined;
+          // For prompt target
+          console.log('[applySuggestion] Applying to prompt, type:', suggestion.type);
 
-          const response = await fetch('/api/apply-patch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              currentPrompt: currentPrompt.contentMarkdown,
-              originalPrompt: originalContent,
-              suggestion: {
-                type: suggestion.type,
-                confidence: suggestion.confidence,
-                proposed: suggestion.proposed,
-                rationale: suggestion.rationale,
-              },
-              modelId: selectedModelId,
-              apiKey: apiKey || undefined, // Don't send empty string
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to apply suggestion');
-          }
-
-          const result = await response.json();
-
-          if (result.success && result.mergedPrompt) {
-            // Update with the merged result from the model
-            updatePromptContent(result.mergedPrompt);
+          if (suggestion.type === 'full_rewrite') {
+            // Full rewrite: directly replace without API call
+            console.log('[applySuggestion] Full rewrite - replacing directly');
+            console.log('[applySuggestion] Current content:', freshPrompt.contentMarkdown.slice(0, 100));
+            console.log('[applySuggestion] New content:', suggestion.proposed.slice(0, 100));
+            store.updatePromptContent(suggestion.proposed);
+            // Verify it was updated
+            const updated = useExecutionStore.getState().currentPrompt?.contentMarkdown;
+            console.log('[applySuggestion] After update:', updated?.slice(0, 100));
           } else {
-            throw new Error(result.error || 'Unknown error');
+            // Patch: use the intelligent merging API
+            console.log('[applySuggestion] Patch - calling API');
+            // Get fresh prompt content for the API call
+            const currentContent = useExecutionStore.getState().currentPrompt?.contentMarkdown ?? '';
+            const modelConfig = getModelById(selectedModelId);
+            const apiKey = modelConfig ? getApiKey(modelConfig.provider) : undefined;
+
+            const response = await fetch('/api/apply-patch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                currentPrompt: currentContent,
+                originalPrompt: originalContent,
+                suggestion: {
+                  type: suggestion.type,
+                  confidence: suggestion.confidence,
+                  proposed: suggestion.proposed,
+                  rationale: suggestion.rationale,
+                },
+                modelId: selectedModelId,
+                apiKey: apiKey || undefined,
+              }),
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error('[applySuggestion] API error:', response.status, errorText);
+              throw new Error(`Failed to apply suggestion: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('[applySuggestion] API result:', {
+              success: result.success,
+              hasMergedPrompt: !!result.mergedPrompt,
+              mergedLength: result.mergedPrompt?.length,
+            });
+
+            if (result.success && result.mergedPrompt) {
+              console.log('[applySuggestion] Updating with merged prompt');
+              store.updatePromptContent(result.mergedPrompt);
+              // Verify it was updated
+              const updated = useExecutionStore.getState().currentPrompt?.contentMarkdown;
+              console.log('[applySuggestion] After update:', updated?.slice(0, 100));
+            } else {
+              throw new Error(result.error || 'No merged prompt returned');
+            }
           }
         }
+
+        // Mark as applied successfully
+        setAppliedIds((prev) => new Set(prev).add(suggestion.id));
+        console.log('[applySuggestion] Successfully applied:', suggestion.id);
       } catch (error) {
-        console.error('Apply suggestion error:', error);
+        console.error('[applySuggestion] Error:', error);
         setApplyError(error instanceof Error ? error.message : 'Failed to apply');
       } finally {
         setApplyingId(null);
       }
     },
-    [
-      currentPrompt,
-      selectedModelId,
-      updatePromptContent,
-      setIntent,
-      setGuardrails,
-      addExample,
-      updateExample,
-      removeExample,
-      getApiKey,
-    ]
+    [selectedModelId, getApiKey]
   );
 
   return {
@@ -219,6 +251,7 @@ export function usePromptAssistant(options: UsePromptAssistantOptions = {}) {
     hasExecutionContext,
     applySuggestion,
     applyingId,
+    appliedIds,
     applyError,
     currentPromptContent: currentPrompt?.contentMarkdown ?? '',
   };

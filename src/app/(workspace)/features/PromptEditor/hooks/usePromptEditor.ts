@@ -92,6 +92,7 @@ export function usePromptEditor() {
   return {
     content: displayContent,
     promptName: currentPrompt?.name ?? '',
+    promptId: currentPrompt?.id ?? '',
     isExecuting,
     onChange: handleChange,
     onNameChange: handleNameChange,
