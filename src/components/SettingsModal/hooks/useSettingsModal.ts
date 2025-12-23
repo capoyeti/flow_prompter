@@ -10,17 +10,20 @@ interface ApiKeyField {
   placeholder: string;
   value: string;
   visible: boolean;
+  serverConfigured: boolean;
 }
 
 export function useSettingsModal() {
   const {
     apiKeys,
+    serverConfiguredProviders,
     isSettingsModalOpen,
     hasCompletedOnboarding,
     setApiKey,
     closeSettingsModal,
     completeOnboarding,
     loadFromStorage,
+    fetchServerProviders,
   } = useSettingsStore();
 
   // Local form state for editing
@@ -28,6 +31,10 @@ export function useSettingsModal() {
     openai: '',
     anthropic: '',
     google: '',
+    mistral: '',
+    deepseek: '',
+    perplexity: '',
+    ollama: '',
   });
 
   // Visibility toggle for each field
@@ -35,12 +42,17 @@ export function useSettingsModal() {
     openai: false,
     anthropic: false,
     google: false,
+    mistral: false,
+    deepseek: false,
+    perplexity: false,
+    ollama: false,
   });
 
-  // Initialize store from localStorage on mount
+  // Initialize store from localStorage and fetch server providers on mount
   useEffect(() => {
     loadFromStorage();
-  }, [loadFromStorage]);
+    fetchServerProviders();
+  }, [loadFromStorage, fetchServerProviders]);
 
   // Sync form state when modal opens
   useEffect(() => {
@@ -50,6 +62,10 @@ export function useSettingsModal() {
         openai: apiKeys.openai,
         anthropic: apiKeys.anthropic,
         google: apiKeys.google,
+        mistral: apiKeys.mistral,
+        deepseek: apiKeys.deepseek,
+        perplexity: apiKeys.perplexity,
+        ollama: apiKeys.ollama,
       });
       // Reset visibility on open
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -57,6 +73,10 @@ export function useSettingsModal() {
         openai: false,
         anthropic: false,
         google: false,
+        mistral: false,
+        deepseek: false,
+        perplexity: false,
+        ollama: false,
       });
     }
   }, [isSettingsModalOpen, apiKeys]);
@@ -74,6 +94,10 @@ export function useSettingsModal() {
     setApiKey('openai', formKeys.openai);
     setApiKey('anthropic', formKeys.anthropic);
     setApiKey('google', formKeys.google);
+    setApiKey('mistral', formKeys.mistral);
+    setApiKey('deepseek', formKeys.deepseek);
+    setApiKey('perplexity', formKeys.perplexity);
+    setApiKey('ollama', formKeys.ollama);
 
     // Mark onboarding complete if this is first time
     if (!hasCompletedOnboarding) {
@@ -89,9 +113,17 @@ export function useSettingsModal() {
       openai: apiKeys.openai,
       anthropic: apiKeys.anthropic,
       google: apiKeys.google,
+      mistral: apiKeys.mistral,
+      deepseek: apiKeys.deepseek,
+      perplexity: apiKeys.perplexity,
+      ollama: apiKeys.ollama,
     });
     closeSettingsModal();
   }, [apiKeys, closeSettingsModal]);
+
+  // Helper to check if provider has server-side key
+  const isServerConfigured = (provider: ProviderType) =>
+    serverConfiguredProviders.includes(provider);
 
   // Build field configuration
   const fields: ApiKeyField[] = [
@@ -101,6 +133,7 @@ export function useSettingsModal() {
       placeholder: 'sk-...',
       value: formKeys.openai,
       visible: visibility.openai,
+      serverConfigured: isServerConfigured('openai'),
     },
     {
       provider: 'anthropic',
@@ -108,6 +141,7 @@ export function useSettingsModal() {
       placeholder: 'sk-ant-...',
       value: formKeys.anthropic,
       visible: visibility.anthropic,
+      serverConfigured: isServerConfigured('anthropic'),
     },
     {
       provider: 'google',
@@ -115,6 +149,39 @@ export function useSettingsModal() {
       placeholder: 'AIza...',
       value: formKeys.google,
       visible: visibility.google,
+      serverConfigured: isServerConfigured('google'),
+    },
+    {
+      provider: 'mistral',
+      label: 'Mistral',
+      placeholder: 'Enter Mistral API key',
+      value: formKeys.mistral,
+      visible: visibility.mistral,
+      serverConfigured: isServerConfigured('mistral'),
+    },
+    {
+      provider: 'deepseek',
+      label: 'DeepSeek',
+      placeholder: 'sk-...',
+      value: formKeys.deepseek,
+      visible: visibility.deepseek,
+      serverConfigured: isServerConfigured('deepseek'),
+    },
+    {
+      provider: 'perplexity',
+      label: 'Perplexity',
+      placeholder: 'pplx-...',
+      value: formKeys.perplexity,
+      visible: visibility.perplexity,
+      serverConfigured: isServerConfigured('perplexity'),
+    },
+    {
+      provider: 'ollama',
+      label: 'Ollama (Local)',
+      placeholder: 'http://localhost:11434',
+      value: formKeys.ollama,
+      visible: visibility.ollama,
+      serverConfigured: isServerConfigured('ollama'),
     },
   ];
 

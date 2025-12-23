@@ -23,6 +23,24 @@ export async function GET() {
       provider: 'google',
       configured: Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim()),
     },
+    {
+      provider: 'mistral',
+      configured: Boolean(process.env.MISTRAL_API_KEY?.trim()),
+    },
+    {
+      provider: 'deepseek',
+      configured: Boolean(process.env.DEEPSEEK_API_KEY?.trim()),
+    },
+    {
+      provider: 'perplexity',
+      configured: Boolean(process.env.PERPLEXITY_API_KEY?.trim()),
+    },
+    {
+      provider: 'ollama',
+      // Ollama is considered "configured" if it's running locally (we'll check connectivity)
+      // For now, mark as configured if OLLAMA_BASE_URL is set or assume localhost default
+      configured: true, // Ollama doesn't need an API key, just needs to be running
+    },
   ];
 
   return NextResponse.json({ providers });

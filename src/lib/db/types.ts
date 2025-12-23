@@ -70,6 +70,62 @@ export interface DbAssistantMessage {
   created_at: string;
 }
 
+// Version history types
+export interface DbPromptVersion {
+  id: string;
+  prompt_id: string;
+  version_number: number;
+  content_markdown: string;
+  intent: string | null;
+  guardrails: string | null;
+  examples_json: { input: string; output: string }[];
+  selected_model_ids: string[];
+  is_production: boolean;
+  deployed_at: string | null;
+  source: 'user' | 'assistant' | 'auto';
+  label: string | null;
+  changed_part: 'content' | 'intent' | 'guardrails' | 'examples' | null;
+  created_at: string;
+}
+
+export interface DbEvaluationCriteria {
+  id: string;
+  prompt_id: string;
+  evaluation_prompt: string | null;
+  use_smart_default: boolean;
+  evaluator_model_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbVersionEvaluation {
+  id: string;
+  version_id: string;
+  run_id: string | null;
+  evaluation_prompt: string;
+  evaluator_model_id: string;
+  results_json: {
+    modelId: string;
+    score: number;
+    reasoning: string;
+    strengths?: string[];
+    improvements?: string[];
+  }[];
+  average_score: number | null;
+  evaluated_at: string;
+}
+
+export interface DbDeploymentAuditLog {
+  id: string;
+  prompt_id: string;
+  version_id: string;
+  action: 'deploy' | 'rollback' | 'undeploy';
+  previous_version_id: string | null;
+  performed_by: string | null;
+  performed_at: string;
+  notes: string | null;
+}
+
 // Supabase Database type definition
 export interface Database {
   public: {
@@ -176,6 +232,79 @@ export interface Database {
           execution_snapshot_json?: DbAssistantMessage['execution_snapshot_json'];
           created_at?: string;
         };
+      };
+      prompt_versions: {
+        Row: DbPromptVersion;
+        Insert: {
+          id?: string;
+          prompt_id: string;
+          version_number: number;
+          content_markdown: string;
+          intent?: string | null;
+          guardrails?: string | null;
+          examples_json?: DbPromptVersion['examples_json'];
+          selected_model_ids?: string[];
+          is_production?: boolean;
+          deployed_at?: string | null;
+          source?: DbPromptVersion['source'];
+          label?: string | null;
+          changed_part?: DbPromptVersion['changed_part'];
+          created_at?: string;
+        };
+        Update: {
+          is_production?: boolean;
+          deployed_at?: string | null;
+          label?: string | null;
+        };
+      };
+      evaluation_criteria: {
+        Row: DbEvaluationCriteria;
+        Insert: {
+          id?: string;
+          prompt_id: string;
+          evaluation_prompt?: string | null;
+          use_smart_default?: boolean;
+          evaluator_model_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          evaluation_prompt?: string | null;
+          use_smart_default?: boolean;
+          evaluator_model_id?: string | null;
+          updated_at?: string;
+        };
+      };
+      version_evaluations: {
+        Row: DbVersionEvaluation;
+        Insert: {
+          id?: string;
+          version_id: string;
+          run_id?: string | null;
+          evaluation_prompt: string;
+          evaluator_model_id: string;
+          results_json: DbVersionEvaluation['results_json'];
+          average_score?: number | null;
+          evaluated_at?: string;
+        };
+        Update: {
+          results_json?: DbVersionEvaluation['results_json'];
+          average_score?: number | null;
+        };
+      };
+      deployment_audit_log: {
+        Row: DbDeploymentAuditLog;
+        Insert: {
+          id?: string;
+          prompt_id: string;
+          version_id: string;
+          action: DbDeploymentAuditLog['action'];
+          previous_version_id?: string | null;
+          performed_by?: string | null;
+          performed_at?: string;
+          notes?: string | null;
+        };
+        Update: never;  // Immutable audit log
       };
     };
     Views: Record<string, never>;

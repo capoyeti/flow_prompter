@@ -1,22 +1,39 @@
 // Application constants
 
-export const APP_NAME = 'Flow Prompter';
-export const APP_DESCRIPTION = 'A prompt engineering playground for iterating on prompts with multi-model testing and AI-assisted refinement';
+export const APP_NAME = 'CloverERA Prompt Evaluator';
+export const APP_DESCRIPTION = 'A prompt evaluation tool for testing and optimizing CloverERA feedback analysis prompts';
 
 // Static user ID for now (auth-ready structure)
 export const STATIC_USER_ID = '00000000-0000-0000-0000-000000000001';
 
-// LocalStorage keys (all prefixed with flowprompt:)
+// LocalStorage keys (all prefixed with cloverera:)
 export const STORAGE_KEYS = {
-  SELECTED_MODEL_IDS: 'flowprompt:selectedModelIds',
-  ASSISTANT_PANEL_OPEN: 'flowprompt:assistantPanelOpen',
-  API_KEY_OPENAI: 'flowprompt:apiKey:openai',
-  API_KEY_ANTHROPIC: 'flowprompt:apiKey:anthropic',
-  API_KEY_GOOGLE: 'flowprompt:apiKey:google',
-  ONBOARDING_COMPLETE: 'flowprompt:onboardingComplete',
-  THEME: 'flowprompt:theme',
-  PANEL_MODEL_ID: 'flowprompt:panelModelId', // Shared model for Evaluator & Assistant panel
+  SELECTED_MODEL_IDS: 'cloverera:selectedModelIds',
+  ASSISTANT_PANEL_OPEN: 'cloverera:assistantPanelOpen',
+  API_KEY_OPENAI: 'cloverera:apiKey:openai',
+  API_KEY_ANTHROPIC: 'cloverera:apiKey:anthropic',
+  API_KEY_GOOGLE: 'cloverera:apiKey:google',
+  API_KEY_MISTRAL: 'cloverera:apiKey:mistral',
+  API_KEY_DEEPSEEK: 'cloverera:apiKey:deepseek',
+  API_KEY_PERPLEXITY: 'cloverera:apiKey:perplexity',
+  API_KEY_AZURE: 'cloverera:apiKey:azure',
+  OLLAMA_BASE_URL: 'cloverera:ollama:baseUrl',
+  ONBOARDING_COMPLETE: 'cloverera:onboardingComplete',
+  THEME: 'cloverera:theme',
+  PANEL_MODEL_ID: 'cloverera:panelModelId', // Shared model for Evaluator & Assistant panel
+  FEEDBACK_DATA: 'cloverera:feedbackData', // Uploaded feedback data
 } as const;
+
+// API key storage key mapping by provider
+export const API_KEY_STORAGE_MAP: Record<string, string> = {
+  openai: STORAGE_KEYS.API_KEY_OPENAI,
+  anthropic: STORAGE_KEYS.API_KEY_ANTHROPIC,
+  google: STORAGE_KEYS.API_KEY_GOOGLE,
+  mistral: STORAGE_KEYS.API_KEY_MISTRAL,
+  deepseek: STORAGE_KEYS.API_KEY_DEEPSEEK,
+  perplexity: STORAGE_KEYS.API_KEY_PERPLEXITY,
+  azure: STORAGE_KEYS.API_KEY_AZURE,
+};
 
 // Keyboard shortcuts
 export const SHORTCUTS = {

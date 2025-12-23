@@ -1,7 +1,14 @@
 // AI Provider and Model configurations
 // This is the single source of truth for all model capabilities
 
-export type ProviderType = 'openai' | 'anthropic' | 'google';
+export type ProviderType =
+  | 'openai'
+  | 'anthropic'
+  | 'google'
+  | 'mistral'
+  | 'deepseek'
+  | 'perplexity'
+  | 'ollama';
 
 export interface ProviderCapabilities {
   supportsStreaming: boolean;
@@ -153,6 +160,137 @@ export const MODELS: ModelConfig[] = [
     isDefault: true,
     tier: 3, // Fast/efficient
   },
+
+  // Mistral Models
+  {
+    id: 'mistral-large-latest',
+    provider: 'mistral',
+    name: 'mistral-large-latest',
+    displayName: 'Mistral Large',
+    contextWindow: 128000,
+    capabilities: {
+      supportsStreaming: true,
+      supportsThinking: false,
+      supportsTemperature: true,
+      temperatureRange: { min: 0, max: 1, default: 0.7 },
+      supportsSystemPrompt: true,
+      supportsMaxTokens: true,
+      maxOutputTokens: 8192,
+    },
+    isDefault: true,
+    tier: 1,
+  },
+  {
+    id: 'mistral-small-latest',
+    provider: 'mistral',
+    name: 'mistral-small-latest',
+    displayName: 'Mistral Small',
+    contextWindow: 32000,
+    capabilities: {
+      supportsStreaming: true,
+      supportsThinking: false,
+      supportsTemperature: true,
+      temperatureRange: { min: 0, max: 1, default: 0.7 },
+      supportsSystemPrompt: true,
+      supportsMaxTokens: true,
+      maxOutputTokens: 8192,
+    },
+    tier: 2,
+  },
+  {
+    id: 'codestral-latest',
+    provider: 'mistral',
+    name: 'codestral-latest',
+    displayName: 'Codestral',
+    contextWindow: 32000,
+    capabilities: {
+      supportsStreaming: true,
+      supportsThinking: false,
+      supportsTemperature: true,
+      temperatureRange: { min: 0, max: 1, default: 0.2 },
+      supportsSystemPrompt: true,
+      supportsMaxTokens: true,
+      maxOutputTokens: 8192,
+    },
+    tier: 2,
+  },
+
+  // DeepSeek Models
+  {
+    id: 'deepseek-chat',
+    provider: 'deepseek',
+    name: 'deepseek-chat',
+    displayName: 'DeepSeek Chat',
+    contextWindow: 64000,
+    capabilities: {
+      supportsStreaming: true,
+      supportsThinking: false,
+      supportsTemperature: true,
+      temperatureRange: { min: 0, max: 2, default: 1 },
+      supportsSystemPrompt: true,
+      supportsMaxTokens: true,
+      maxOutputTokens: 8192,
+    },
+    tier: 2,
+  },
+  {
+    id: 'deepseek-reasoner',
+    provider: 'deepseek',
+    name: 'deepseek-reasoner',
+    displayName: 'DeepSeek R1',
+    contextWindow: 64000,
+    capabilities: {
+      supportsStreaming: true,
+      supportsThinking: true, // R1 has built-in reasoning
+      supportsTemperature: true,
+      temperatureRange: { min: 0, max: 2, default: 0.6 },
+      supportsSystemPrompt: true,
+      supportsMaxTokens: true,
+      maxOutputTokens: 8192,
+    },
+    isDefault: true,
+    tier: 1,
+  },
+
+  // Perplexity Models
+  {
+    id: 'sonar-pro',
+    provider: 'perplexity',
+    name: 'sonar-pro',
+    displayName: 'Sonar Pro',
+    contextWindow: 200000,
+    capabilities: {
+      supportsStreaming: true,
+      supportsThinking: false,
+      supportsTemperature: true,
+      temperatureRange: { min: 0, max: 2, default: 0.7 },
+      supportsSystemPrompt: true,
+      supportsMaxTokens: true,
+      maxOutputTokens: 8192,
+    },
+    isDefault: true,
+    tier: 1,
+  },
+  {
+    id: 'sonar',
+    provider: 'perplexity',
+    name: 'sonar',
+    displayName: 'Sonar',
+    contextWindow: 128000,
+    capabilities: {
+      supportsStreaming: true,
+      supportsThinking: false,
+      supportsTemperature: true,
+      temperatureRange: { min: 0, max: 2, default: 0.7 },
+      supportsSystemPrompt: true,
+      supportsMaxTokens: true,
+      maxOutputTokens: 8192,
+    },
+    tier: 2,
+  },
+
+  // Ollama models are discovered dynamically from the local Ollama instance
+  // See /api/ollama/models endpoint and useModelSelector hook
 ];
 
 // Helper functions
@@ -173,6 +311,10 @@ export function getProviderColor(provider: ProviderType): string {
     openai: 'text-green-600',
     anthropic: 'text-orange-500',
     google: 'text-blue-500',
+    mistral: 'text-orange-600',
+    deepseek: 'text-indigo-600',
+    perplexity: 'text-teal-600',
+    ollama: 'text-gray-600',
   };
   return colors[provider];
 }
@@ -182,6 +324,10 @@ export function getProviderBgColor(provider: ProviderType): string {
     openai: 'bg-green-50',
     anthropic: 'bg-orange-50',
     google: 'bg-blue-50',
+    mistral: 'bg-orange-50',
+    deepseek: 'bg-indigo-50',
+    perplexity: 'bg-teal-50',
+    ollama: 'bg-gray-50',
   };
   return colors[provider];
 }
@@ -205,7 +351,15 @@ export function getBestAvailableModel(availableProviders: ProviderType[]): Model
   if (availableProviders.length === 0) return undefined;
 
   // Get all tier-1 models from available providers, sorted by our preferred order
-  const providerPriority: ProviderType[] = ['anthropic', 'openai', 'google'];
+  const providerPriority: ProviderType[] = [
+    'anthropic',
+    'openai',
+    'google',
+    'deepseek',
+    'mistral',
+    'perplexity',
+    'ollama',
+  ];
 
   for (const provider of providerPriority) {
     if (availableProviders.includes(provider)) {
@@ -224,10 +378,16 @@ export function getModelsGroupedByProvider(): Record<ProviderType, ModelConfig[]
     anthropic: [],
     openai: [],
     google: [],
+    mistral: [],
+    deepseek: [],
+    perplexity: [],
+    ollama: [],
   };
 
   for (const model of MODELS) {
-    grouped[model.provider].push(model);
+    if (grouped[model.provider]) {
+      grouped[model.provider].push(model);
+    }
   }
 
   // Sort each group by tier
@@ -271,6 +431,30 @@ export function getProviderCardColors(provider: ProviderType): CardColors {
       title: 'var(--provider-google-title)',
       accent: '#3b82f6',
       tint: 'var(--provider-google-tint)',
+    },
+    mistral: {
+      border: '#ff7000',
+      title: 'var(--provider-mistral-title, #ff7000)',
+      accent: '#ff7000',
+      tint: 'var(--provider-mistral-tint, rgba(255, 112, 0, 0.05))',
+    },
+    deepseek: {
+      border: '#4f46e5',
+      title: 'var(--provider-deepseek-title, #4f46e5)',
+      accent: '#4f46e5',
+      tint: 'var(--provider-deepseek-tint, rgba(79, 70, 229, 0.05))',
+    },
+    perplexity: {
+      border: '#20b2aa',
+      title: 'var(--provider-perplexity-title, #20b2aa)',
+      accent: '#20b2aa',
+      tint: 'var(--provider-perplexity-tint, rgba(32, 178, 170, 0.05))',
+    },
+    ollama: {
+      border: '#1a1a2e',
+      title: 'var(--provider-ollama-title, #1a1a2e)',
+      accent: '#1a1a2e',
+      tint: 'var(--provider-ollama-tint, rgba(26, 26, 46, 0.05))',
     },
   };
   return colors[provider];

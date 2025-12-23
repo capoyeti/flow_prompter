@@ -1,4 +1,5 @@
 export { useExecutionStore, selectIsExecuting, selectCanExecute } from './executionStore';
+export type { FeedbackRow, FeedbackData } from './executionStore';
 export { useAssistantStore, buildAssistantSystemPrompt } from './assistantStore';
 export { useEvaluatorStore, EVALUATION_SCALE } from './evaluatorStore';
 export { useProjectStore } from './projectStore';

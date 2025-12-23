@@ -68,7 +68,7 @@ export function SettingsModal() {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
           <h2 id="settings-modal-title" className="text-lg font-semibold text-neutral-900">
-            {isWelcomeMode ? 'Welcome to Flow Prompter' : 'Settings'}
+            {isWelcomeMode ? 'Welcome to CloverERA Evaluator' : 'Settings'}
           </h2>
           {!isWelcomeMode && (
             <button
@@ -100,6 +100,7 @@ export function SettingsModal() {
                 placeholder={field.placeholder}
                 value={field.value}
                 visible={field.visible}
+                serverConfigured={field.serverConfigured}
                 onChange={(value) => updateFormKey(field.provider, value)}
                 onToggleVisibility={() => toggleVisibility(field.provider)}
               />
@@ -129,6 +130,7 @@ interface ApiKeyInputProps {
   placeholder: string;
   value: string;
   visible: boolean;
+  serverConfigured: boolean;
   onChange: (value: string) => void;
   onToggleVisibility: () => void;
 }
@@ -139,6 +141,7 @@ function ApiKeyInput({
   placeholder,
   value,
   visible,
+  serverConfigured,
   onChange,
   onToggleVisibility,
 }: ApiKeyInputProps) {
@@ -146,27 +149,35 @@ function ApiKeyInput({
 
   return (
     <div>
-      <label
-        htmlFor={inputId}
-        className="block text-sm font-medium text-neutral-700 mb-1"
-      >
-        {label}
-      </label>
+      <div className="flex items-center justify-between mb-1">
+        <label
+          htmlFor={inputId}
+          className="block text-sm font-medium text-neutral-700"
+        >
+          {label}
+        </label>
+        {serverConfigured && (
+          <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+            Server configured
+          </span>
+        )}
+      </div>
       <div className="relative">
         <input
           id={inputId}
           type={visible ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="
+          placeholder={serverConfigured ? '(Using server key)' : placeholder}
+          className={`
             w-full px-3 py-2 pr-10
-            border border-neutral-300 rounded-md
+            border rounded-md
             text-sm text-neutral-900
             placeholder:text-neutral-400
             focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500
             transition-colors
-          "
+            ${serverConfigured && !value ? 'border-green-300 bg-green-50/50' : 'border-neutral-300'}
+          `}
           autoComplete="off"
           spellCheck={false}
         />
@@ -187,6 +198,11 @@ function ApiKeyInput({
           )}
         </button>
       </div>
+      {serverConfigured && !value && (
+        <p className="text-xs text-neutral-500 mt-1">
+          Using key from server environment. Add your own to override.
+        </p>
+      )}
     </div>
   );
 }

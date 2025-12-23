@@ -12,8 +12,12 @@ function getProviderDisplayName(provider: ProviderType): string {
     openai: 'OpenAI',
     anthropic: 'Anthropic',
     google: 'Google',
+    mistral: 'Mistral',
+    deepseek: 'DeepSeek',
+    perplexity: 'Perplexity',
+    ollama: 'Ollama',
   };
-  return names[provider];
+  return names[provider] ?? provider;
 }
 
 export function useExecutePrompt() {
@@ -24,6 +28,7 @@ export function useExecutePrompt() {
     promptIntent,
     promptExamples,
     promptGuardrails,
+    feedbackData,
     startExecution,
     updateExecution,
     completeExecution,
@@ -131,12 +136,13 @@ export function useExecutePrompt() {
     // Clear any previous evaluation results since we're running a new prompt
     clearEvaluation();
 
-    // Build the combined prompt with intent, examples, and guardrails
+    // Build the combined prompt with intent, examples, guardrails, and feedback data
     const { fullPrompt } = buildPrompt({
       content: currentPrompt.contentMarkdown,
       intent: promptIntent || undefined,
       examples: promptExamples.length > 0 ? promptExamples : undefined,
       guardrails: promptGuardrails || undefined,
+      feedbackData: feedbackData || undefined,
     });
 
     // Store what was sent for display purposes
@@ -147,7 +153,7 @@ export function useExecutePrompt() {
 
     // Push to history AFTER execution completes so we capture the results
     pushHistory('user', 'Run');
-  }, [selectedModelIds, executeModel, currentPrompt, promptIntent, promptExamples, promptGuardrails, setLastSentPrompt, pushHistory, clearEvaluation]);
+  }, [selectedModelIds, executeModel, currentPrompt, promptIntent, promptExamples, promptGuardrails, feedbackData, setLastSentPrompt, pushHistory, clearEvaluation]);
 
   return {
     executeModel,

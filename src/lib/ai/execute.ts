@@ -2,6 +2,7 @@
 import { streamText } from 'ai';
 import { getLanguageModel, ExecuteRequest } from './providers';
 import { getModelById } from '@/config/providers';
+import { getProvider } from './adapters';
 
 export interface ExecuteOptions extends ExecuteRequest {
   onStart?: () => void;
@@ -78,20 +79,22 @@ export async function executePrompt(options: ExecuteOptions): Promise<ExecuteRes
     }
 
     // Add thinking/reasoning for models that support it
+    // Uses adapter's getProviderOptions for provider-specific configuration
     if (
       parameters?.thinking?.enabled &&
       modelConfig.capabilities.supportsThinking
     ) {
-      // Provider-specific thinking configuration
-      if (modelConfig.provider === 'anthropic') {
-        streamOptions.providerOptions = {
-          anthropic: {
-            thinking: {
-              type: 'enabled',
-              budgetTokens: parameters.thinking.budget ?? 10000,
-            },
-          },
-        };
+      const adapter = getProvider(modelConfig.provider);
+      if (adapter?.getProviderOptions) {
+        const providerOptions = adapter.getProviderOptions({
+          thinking: parameters.thinking,
+          modelConfig,
+          temperature: parameters.temperature,
+          maxTokens: parameters.maxTokens,
+        });
+        if (Object.keys(providerOptions).length > 0) {
+          streamOptions.providerOptions = providerOptions;
+        }
       }
     }
 
@@ -188,20 +191,24 @@ export async function executePromptStream(options: ExecuteRequest) {
       : parameters.maxTokens;
   }
 
-  // Add thinking for Anthropic
+  // Add thinking/reasoning for models that support it
+  // Uses adapter's getProviderOptions for provider-specific configuration
   if (
     parameters?.thinking?.enabled &&
-    modelConfig.capabilities.supportsThinking &&
-    modelConfig.provider === 'anthropic'
+    modelConfig.capabilities.supportsThinking
   ) {
-    streamOptions.providerOptions = {
-      anthropic: {
-        thinking: {
-          type: 'enabled',
-          budgetTokens: parameters.thinking.budget ?? 10000,
-        },
-      },
-    };
+    const adapter = getProvider(modelConfig.provider);
+    if (adapter?.getProviderOptions) {
+      const providerOptions = adapter.getProviderOptions({
+        thinking: parameters.thinking,
+        modelConfig,
+        temperature: parameters.temperature,
+        maxTokens: parameters.maxTokens,
+      });
+      if (Object.keys(providerOptions).length > 0) {
+        streamOptions.providerOptions = providerOptions;
+      }
+    }
   }
 
   return streamText(streamOptions);

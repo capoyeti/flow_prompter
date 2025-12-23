@@ -7,6 +7,21 @@ import type { StreamingState } from '@/types/streaming';
 import { initialStreamingState } from '@/types/streaming';
 import { ModelConfig, getModelById, ProviderType } from '@/config/providers';
 
+// Feedback data types for CloverERA
+export interface FeedbackRow {
+  CloverCategory: string;
+  Question: string;
+  Answer: string;
+  Reason?: string;
+}
+
+export interface FeedbackData {
+  rows: FeedbackRow[];
+  headers: string[];
+  fileName?: string;
+  sourceType: 'file' | 'paste' | 'sample';
+}
+
 // Enable Map/Set support for Immer
 enableMapSet();
 
@@ -64,6 +79,9 @@ interface ExecutionState {
 
   // The last prompt that was actually sent to the models (combined with intent/examples/guardrails)
   lastSentPrompt: string | null;
+
+  // Feedback data for CloverERA (uploaded Excel/CSV)
+  feedbackData: FeedbackData | null;
 }
 
 interface ExecutionActions {
@@ -124,6 +142,10 @@ interface ExecutionActions {
   // Last sent prompt tracking
   setLastSentPrompt: (prompt: string) => void;
 
+  // Feedback data management
+  setFeedbackData: (data: FeedbackData | null) => void;
+  clearFeedbackData: () => void;
+
   // Reset
   reset: () => void;
 }
@@ -141,6 +163,7 @@ const initialState: ExecutionState = {
   promptExamples: [],
   promptGuardrails: '',
   lastSentPrompt: null,
+  feedbackData: null,
 };
 
 export const useExecutionStore = create<ExecutionState & ExecutionActions>()(
@@ -507,6 +530,17 @@ export const useExecutionStore = create<ExecutionState & ExecutionActions>()(
     setLastSentPrompt: (prompt) =>
       set((state) => {
         state.lastSentPrompt = prompt;
+      }),
+
+    // Feedback data management
+    setFeedbackData: (data) =>
+      set((state) => {
+        state.feedbackData = data;
+      }),
+
+    clearFeedbackData: () =>
+      set((state) => {
+        state.feedbackData = null;
       }),
 
     // Reset

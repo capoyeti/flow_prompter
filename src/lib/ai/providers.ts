@@ -1,41 +1,30 @@
 // AI Provider abstraction using Vercel AI SDK
-import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+// Now uses the adapter registry for extensibility
+
 import { ProviderType, getModelById } from '@/config/providers';
+import { getProvider, getAllProviders } from './adapters';
 
 // Provider client cache (only for env var-based clients)
-const providerClients: Map<ProviderType, ReturnType<typeof createProviderClient>> = new Map();
+const providerClients: Map<string, unknown> = new Map();
 
-function createProviderClient(provider: ProviderType, apiKey?: string) {
-  switch (provider) {
-    case 'openai':
-      return createOpenAI({
-        apiKey: apiKey || process.env.OPENAI_API_KEY,
-      });
-    case 'anthropic':
-      return createAnthropic({
-        apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
-      });
-    case 'google':
-      return createGoogleGenerativeAI({
-        apiKey: apiKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-      });
-    default:
-      throw new Error(`Unknown provider: ${provider}`);
-  }
-}
-
+/**
+ * Get a provider client, using cache for env var-based clients
+ */
 export function getProviderClient(provider: ProviderType, apiKey?: string) {
+  const adapter = getProvider(provider);
+  if (!adapter) {
+    throw new Error(`Unknown provider: ${provider}. Make sure it's registered in the adapter registry.`);
+  }
+
   // If a custom API key is provided, create a fresh client (don't cache)
   if (apiKey) {
-    return createProviderClient(provider, apiKey);
+    return adapter.createClient(apiKey);
   }
 
   // Otherwise use cached client with env var
   let client = providerClients.get(provider);
   if (!client) {
-    client = createProviderClient(provider);
+    client = adapter.createClient();
     providerClients.set(provider, client);
   }
   return client;
@@ -56,43 +45,69 @@ export interface ExecuteRequest {
   };
 }
 
+/**
+ * Get a language model instance using the adapter registry
+ */
 export function getLanguageModel(modelId: string, apiKey?: string) {
   const modelConfig = getModelById(modelId);
   if (!modelConfig) {
     throw new Error(`Unknown model: ${modelId}`);
   }
 
+  const adapter = getProvider(modelConfig.provider);
+  if (!adapter) {
+    throw new Error(`Unknown provider: ${modelConfig.provider}. Make sure it's registered.`);
+  }
+
   const client = getProviderClient(modelConfig.provider, apiKey);
-
-  // Return the appropriate model based on provider
-  switch (modelConfig.provider) {
-    case 'openai':
-      return client(modelConfig.name);
-    case 'anthropic':
-      return client(modelConfig.name);
-    case 'google':
-      return client(modelConfig.name);
-    default:
-      throw new Error(`Unknown provider: ${modelConfig.provider}`);
-  }
+  return adapter.getLanguageModel(client, modelConfig.name);
 }
 
-// Check if a provider has a valid API key configured
-export function isProviderConfigured(provider: ProviderType): boolean {
-  switch (provider) {
-    case 'openai':
-      return !!process.env.OPENAI_API_KEY;
-    case 'anthropic':
-      return !!process.env.ANTHROPIC_API_KEY;
-    case 'google':
-      return !!process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    default:
-      return false;
+/**
+ * Check if a provider has a valid API key configured
+ * Uses the adapter's isConfigured method
+ */
+export function isProviderConfigured(provider: ProviderType): boolean | Promise<boolean> {
+  const adapter = getProvider(provider);
+  if (!adapter) {
+    return false;
   }
+  return adapter.isConfigured();
 }
 
-// Get all configured providers
+/**
+ * Get all configured providers (that have API keys or are available)
+ * Note: This is synchronous and only checks env vars, not async checks like Ollama
+ */
 export function getConfiguredProviders(): ProviderType[] {
-  const providers: ProviderType[] = ['openai', 'anthropic', 'google'];
-  return providers.filter(isProviderConfigured);
+  const allProviders = getAllProviders();
+  const configured: ProviderType[] = [];
+
+  for (const adapter of allProviders) {
+    // For sync check, we only check if isConfigured returns a boolean immediately
+    const isConfigured = adapter.isConfigured();
+    if (typeof isConfigured === 'boolean' && isConfigured) {
+      configured.push(adapter.id as ProviderType);
+    }
+  }
+
+  return configured;
+}
+
+/**
+ * Get all configured providers including async checks (like Ollama)
+ * Use this when you need to check local providers
+ */
+export async function getConfiguredProvidersAsync(): Promise<ProviderType[]> {
+  const allProviders = getAllProviders();
+  const configured: ProviderType[] = [];
+
+  for (const adapter of allProviders) {
+    const isConfigured = await adapter.isConfigured();
+    if (isConfigured) {
+      configured.push(adapter.id as ProviderType);
+    }
+  }
+
+  return configured;
 }

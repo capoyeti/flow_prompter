@@ -1,13 +1,22 @@
 // Settings store - manages API keys and application settings
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { STORAGE_KEYS } from '@/config/constants';
-import type { ProviderType } from '@/config/providers';
+import { STORAGE_KEYS, API_KEY_STORAGE_MAP } from '@/config/constants';
+import type { ProviderType, ModelConfig } from '@/config/providers';
 
-interface ApiKeys {
-  openai: string;
-  anthropic: string;
-  google: string;
+// Dynamic API keys interface - supports all providers
+type ApiKeys = Record<ProviderType, string>;
+
+// Ollama model info from dynamic discovery
+export interface OllamaModelInfo {
+  id: string;
+  name: string;
+  displayName: string;
+  size: number;
+  sizeFormatted: string;
+  parameterSize?: string;
+  family?: string;
+  supportsThinking: boolean;
 }
 
 interface SettingsState {
@@ -16,6 +25,12 @@ interface SettingsState {
 
   // Providers configured on the server (via env vars)
   serverConfiguredProviders: ProviderType[];
+
+  // Dynamically discovered Ollama models
+  ollamaModels: OllamaModelInfo[];
+
+  // Whether Ollama models have been fetched
+  ollamaModelsLoaded: boolean;
 
   // Settings modal visibility
   isSettingsModalOpen: boolean;
@@ -48,6 +63,7 @@ interface SettingsActions {
   // Initialization
   loadFromStorage: () => void;
   fetchServerProviders: () => Promise<void>;
+  fetchOllamaModels: () => Promise<void>;
 
   // Reset
   reset: () => void;
@@ -58,8 +74,14 @@ const initialState: SettingsState = {
     openai: '',
     anthropic: '',
     google: '',
+    mistral: '',
+    deepseek: '',
+    perplexity: '',
+    ollama: '', // Ollama uses base URL, not API key
   },
   serverConfiguredProviders: [],
+  ollamaModels: [],
+  ollamaModelsLoaded: false,
   isSettingsModalOpen: false,
   hasCompletedOnboarding: false,
   isInitialized: false,
@@ -95,13 +117,11 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       set((state) => {
         state.apiKeys[provider] = key;
       });
-      // Persist to localStorage
-      const storageKey = {
-        openai: STORAGE_KEYS.API_KEY_OPENAI,
-        anthropic: STORAGE_KEYS.API_KEY_ANTHROPIC,
-        google: STORAGE_KEYS.API_KEY_GOOGLE,
-      }[provider];
-      setStorageItem(storageKey, key);
+      // Persist to localStorage using dynamic mapping
+      const storageKey = API_KEY_STORAGE_MAP[provider];
+      if (storageKey) {
+        setStorageItem(storageKey, key);
+      }
     },
 
     getApiKey: (provider) => get().apiKeys[provider],
@@ -115,11 +135,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
     // Returns true if user has any key in localStorage
     hasAnyApiKey: () => {
       const { apiKeys } = get();
-      return (
-        apiKeys.openai.trim().length > 0 ||
-        apiKeys.anthropic.trim().length > 0 ||
-        apiKeys.google.trim().length > 0
-      );
+      return Object.values(apiKeys).some((key) => key && key.trim().length > 0);
     },
 
     // Returns true if provider is available (either via localStorage OR server env var)
@@ -153,17 +169,20 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
     loadFromStorage: () => {
       if (get().isInitialized) return;
 
-      const openaiKey = getStorageItem(STORAGE_KEYS.API_KEY_OPENAI) ?? '';
-      const anthropicKey = getStorageItem(STORAGE_KEYS.API_KEY_ANTHROPIC) ?? '';
-      const googleKey = getStorageItem(STORAGE_KEYS.API_KEY_GOOGLE) ?? '';
+      // Load API keys for all providers
+      const apiKeys: ApiKeys = {
+        openai: getStorageItem(STORAGE_KEYS.API_KEY_OPENAI) ?? '',
+        anthropic: getStorageItem(STORAGE_KEYS.API_KEY_ANTHROPIC) ?? '',
+        google: getStorageItem(STORAGE_KEYS.API_KEY_GOOGLE) ?? '',
+        mistral: getStorageItem(STORAGE_KEYS.API_KEY_MISTRAL) ?? '',
+        deepseek: getStorageItem(STORAGE_KEYS.API_KEY_DEEPSEEK) ?? '',
+        perplexity: getStorageItem(STORAGE_KEYS.API_KEY_PERPLEXITY) ?? '',
+        ollama: getStorageItem(STORAGE_KEYS.OLLAMA_BASE_URL) ?? '',
+      };
       const onboardingComplete = getStorageItem(STORAGE_KEYS.ONBOARDING_COMPLETE) === 'true';
 
       set((state) => {
-        state.apiKeys = {
-          openai: openaiKey,
-          anthropic: anthropicKey,
-          google: googleKey,
-        };
+        state.apiKeys = apiKeys;
         state.hasCompletedOnboarding = onboardingComplete;
         state.isInitialized = true;
       });
@@ -194,20 +213,50 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       }
     },
 
+    // Fetch available Ollama models from local instance
+    fetchOllamaModels: async () => {
+      if (get().ollamaModelsLoaded) return;
+
+      try {
+        const response = await fetch('/api/ollama/models');
+        if (!response.ok) {
+          set((state) => {
+            state.ollamaModelsLoaded = true;
+          });
+          return;
+        }
+
+        const data = await response.json();
+        const models: OllamaModelInfo[] = data.models ?? [];
+
+        set((state) => {
+          state.ollamaModels = models;
+          state.ollamaModelsLoaded = true;
+        });
+      } catch {
+        // Silently fail - Ollama may not be running
+        set((state) => {
+          state.ollamaModelsLoaded = true;
+        });
+      }
+    },
+
     // Reset
     reset: () => set(initialState),
   }))
 );
 
 // Selector to check if a provider is enabled (has API key)
-export const selectProviderEnabled = (provider: ProviderType) => (state: SettingsState) =>
-  state.apiKeys[provider].trim().length > 0;
+export const selectProviderEnabled = (provider: ProviderType) => (state: SettingsState) => {
+  const key = state.apiKeys[provider];
+  return key ? key.trim().length > 0 : false;
+};
 
 // Selector to get all disabled providers
 export const selectDisabledProviders = (state: SettingsState): ProviderType[] => {
-  const disabled: ProviderType[] = [];
-  if (!state.apiKeys.openai.trim()) disabled.push('openai');
-  if (!state.apiKeys.anthropic.trim()) disabled.push('anthropic');
-  if (!state.apiKeys.google.trim()) disabled.push('google');
-  return disabled;
+  const allProviders: ProviderType[] = ['openai', 'anthropic', 'google', 'mistral', 'deepseek', 'perplexity', 'ollama'];
+  return allProviders.filter((provider) => {
+    const key = state.apiKeys[provider];
+    return !key || !key.trim();
+  });
 };
