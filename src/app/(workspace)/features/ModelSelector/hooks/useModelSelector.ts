@@ -75,10 +75,15 @@ export function useModelSelector() {
     }
 
     // Filter to only show providers that have API keys (server or client-side)
+    // Ollama is special - it's available if we discovered models (no API key needed)
     return Object.fromEntries(
       Object.entries(grouped).filter(([provider, models]) => {
         if (models.length === 0) return false;
         const providerKey = provider as ProviderType;
+        // Ollama doesn't need API keys - just needs models discovered
+        if (providerKey === 'ollama') {
+          return ollamaModels.length > 0;
+        }
         const hasServerKey = serverConfiguredProviders.includes(providerKey);
         const hasClientKey = apiKeys[providerKey]?.trim().length > 0;
         return hasServerKey || hasClientKey;
@@ -127,12 +132,19 @@ export function useModelSelector() {
   // Wrapped toggle that only works if provider is available
   const handleToggleModel = useCallback(
     (modelId: string) => {
+      // Check static models first
       const model = MODELS.find((m) => m.id === modelId);
       if (model && isProviderAvailable(model.provider)) {
         toggleModel(modelId);
+        return;
+      }
+      // Check dynamic Ollama models
+      const ollamaModel = ollamaModels.find((m) => m.id === modelId);
+      if (ollamaModel && isProviderAvailable('ollama')) {
+        toggleModel(modelId);
       }
     },
-    [toggleModel, isProviderAvailable]
+    [toggleModel, isProviderAvailable, ollamaModels]
   );
 
   // Open settings modal (for "Configure Providers" button)

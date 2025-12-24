@@ -141,6 +141,10 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
     // Returns true if provider is available (either via localStorage OR server env var)
     isProviderAvailable: (provider) => {
       const state = get();
+      // Ollama is available if we discovered models (no API key needed)
+      if (provider === 'ollama') {
+        return state.ollamaModels.length > 0;
+      }
       const hasLocalKey = state.apiKeys[provider]?.trim().length > 0;
       const hasServerKey = state.serverConfiguredProviders.includes(provider);
       return hasLocalKey || hasServerKey;
