@@ -63,17 +63,17 @@ export function SettingsModal() {
       <div
         ref={modalRef}
         tabIndex={-1}
-        className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden"
+        className="relative bg-neutral-900 rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden border border-neutral-700"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-          <h2 id="settings-modal-title" className="text-lg font-semibold text-neutral-900">
-            {isWelcomeMode ? 'Welcome to CloverERA Evaluator' : 'Settings'}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-700">
+          <h2 id="settings-modal-title" className="text-lg font-semibold text-neutral-100">
+            {isWelcomeMode ? 'Welcome to Flow Prompter' : 'Settings'}
           </h2>
           {!isWelcomeMode && (
             <button
               onClick={handleCancel}
-              className="p-1 rounded-md text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+              className="p-1 rounded-md text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-colors"
               aria-label="Close settings"
             >
               <X className="h-5 w-5" />
@@ -84,7 +84,7 @@ export function SettingsModal() {
         {/* Body */}
         <div className="px-6 py-4 space-y-4">
           {/* Trust message */}
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-neutral-400">
             {isWelcomeMode
               ? 'Enter any API keys you have for the following providers. These are stored in this browser only (local storage) for your own use.'
               : 'Manage your API keys for each provider. Keys are stored locally in your browser.'}
@@ -109,7 +109,7 @@ export function SettingsModal() {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-neutral-700 bg-neutral-800/50">
           {!isWelcomeMode && (
             <Button variant="ghost" size="md" onClick={handleCancel}>
               Cancel
@@ -152,12 +152,12 @@ function ApiKeyInput({
       <div className="flex items-center justify-between mb-1">
         <label
           htmlFor={inputId}
-          className="block text-sm font-medium text-neutral-700"
+          className="block text-sm font-medium text-neutral-300"
         >
           {label}
         </label>
         {serverConfigured && (
-          <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+          <span className="text-xs px-2 py-0.5 bg-green-900/50 text-green-400 rounded-full border border-green-700">
             Server configured
           </span>
         )}
@@ -172,11 +172,12 @@ function ApiKeyInput({
           className={`
             w-full px-3 py-2 pr-10
             border rounded-md
-            text-sm text-neutral-900
-            placeholder:text-neutral-400
+            text-sm text-neutral-100
+            placeholder:text-neutral-500
+            bg-neutral-800
             focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500
             transition-colors
-            ${serverConfigured && !value ? 'border-green-300 bg-green-50/50' : 'border-neutral-300'}
+            ${serverConfigured && !value ? 'border-green-700 bg-green-900/30 placeholder:text-green-500' : 'border-neutral-600'}
           `}
           autoComplete="off"
           spellCheck={false}
@@ -186,7 +187,7 @@ function ApiKeyInput({
           onClick={onToggleVisibility}
           className="
             absolute right-2 top-1/2 -translate-y-1/2
-            p-1 rounded text-neutral-500 hover:text-neutral-700
+            p-1 rounded text-neutral-400 hover:text-neutral-200
             transition-colors
           "
           aria-label={visible ? 'Hide API key' : 'Show API key'}
