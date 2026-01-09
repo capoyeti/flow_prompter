@@ -14,8 +14,11 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.56",
+    "@ai-sdk/deepseek": "^0.1.0",
     "@ai-sdk/google": "^2.0.49",
+    "@ai-sdk/mistral": "^1.0.0",
     "@ai-sdk/openai": "^2.0.88",
+    "@ai-sdk/perplexity": "^1.0.0",
     "@supabase/supabase-js": "^2.88.0",
     "@tanstack/react-query": "^5.90.12",
     "@tiptap/extension-placeholder": "^3.13.0",
