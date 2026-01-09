@@ -21,7 +21,8 @@ export const mistralAdapter: ProviderAdapter = {
 
   getLanguageModel(client: unknown, modelName: string): LanguageModel {
     const mistralClient = client as MistralClient;
-    return mistralClient(modelName);
+    // Type assertion needed due to SDK version mismatch between V1/V2
+    return mistralClient(modelName) as unknown as LanguageModel;
   },
 
   isConfigured(apiKey?: string): boolean {

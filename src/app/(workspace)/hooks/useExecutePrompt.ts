@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { useExecutionStore, useSettingsStore, useEvaluatorStore } from '@/stores';
-import { getModelById, ProviderType } from '@/config/providers';
+import { getModelConfigDynamic, ProviderType } from '@/config/providers';
 import { buildPrompt } from '@/utils/prompt/buildPrompt';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -48,8 +48,8 @@ export function useExecutePrompt() {
       const runId = uuidv4();
       startExecution(modelId, runId);
 
-      // Get the model config
-      const model = getModelById(modelId);
+      // Get the model config (supports both static and dynamic Ollama models)
+      const model = getModelConfigDynamic(modelId);
       if (!model) {
         failExecution(modelId, 'Unknown model', 'unknown');
         return;

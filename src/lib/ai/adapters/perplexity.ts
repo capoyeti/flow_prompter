@@ -28,7 +28,8 @@ export const perplexityAdapter: ProviderAdapter = {
 
   getLanguageModel(client: unknown, modelName: string): LanguageModel {
     const perplexityClient = client as PerplexityClient;
-    return perplexityClient(modelName);
+    // Type assertion needed due to SDK version mismatch between V1/V2
+    return perplexityClient(modelName) as unknown as LanguageModel;
   },
 
   isConfigured(apiKey?: string): boolean {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useExecutionStore } from '@/stores';
+import { useExecutionStore, useSettingsStore } from '@/stores';
 import { getModelById, MODELS, ProviderType } from '@/config/providers';
 import type { ExecutionErrorType } from '@/types/models';
 
@@ -29,6 +29,24 @@ export function useExecutionPanel() {
     promptHistory,
   } = useExecutionStore();
 
+  const ollamaModels = useSettingsStore((state) => state.ollamaModels);
+
+  // Helper to get model info with proper Ollama detection
+  const getModelInfo = (modelId: string) => {
+    // First check static MODELS
+    const staticModel = getModelById(modelId);
+    if (staticModel) {
+      return { displayName: staticModel.displayName, provider: staticModel.provider };
+    }
+    // Check Ollama models
+    const ollamaModel = ollamaModels.find((m) => m.id === modelId);
+    if (ollamaModel) {
+      return { displayName: ollamaModel.displayName, provider: 'ollama' as ProviderType };
+    }
+    // Unknown model - assume Ollama since dynamic models are typically Ollama
+    return { displayName: modelId, provider: 'ollama' as ProviderType };
+  };
+
   // Check if we're viewing a historical version
   const isViewingHistory = historyViewIndex >= 0 && historyViewIndex < promptHistory.length;
   const historicalSnapshot = isViewingHistory ? promptHistory[historyViewIndex].snapshot : null;
@@ -40,11 +58,11 @@ export function useExecutionPanel() {
     // If viewing history, use the historical snapshot data
     if (historicalSnapshot) {
       historicalSnapshot.completedRuns.forEach((run) => {
-        const model = getModelById(run.modelId);
+        const modelInfo = getModelInfo(run.modelId);
         result.push({
           modelId: run.modelId,
-          modelName: model?.displayName ?? run.modelId,
-          provider: model?.provider ?? 'unknown',
+          modelName: modelInfo.displayName,
+          provider: modelInfo.provider,
           status: run.status,
           content: run.output,
           thinking: run.thinking,
@@ -70,11 +88,11 @@ export function useExecutionPanel() {
     // Otherwise, use live data
     // Add active (streaming) runs
     activeRuns.forEach((run, modelId) => {
-      const model = getModelById(modelId);
+      const modelInfo = getModelInfo(modelId);
       result.push({
         modelId,
-        modelName: model?.displayName ?? modelId,
-        provider: model?.provider ?? 'unknown',
+        modelName: modelInfo.displayName,
+        provider: modelInfo.provider,
         status: 'streaming',
         content: run.state.content,
         thinking: run.state.thinking || undefined,
@@ -83,11 +101,11 @@ export function useExecutionPanel() {
 
     // Add completed runs
     completedRuns.forEach((run, modelId) => {
-      const model = getModelById(modelId);
+      const modelInfo = getModelInfo(modelId);
       result.push({
         modelId,
-        modelName: model?.displayName ?? modelId,
-        provider: model?.provider ?? 'unknown',
+        modelName: modelInfo.displayName,
+        provider: modelInfo.provider,
         status: run.status,
         content: run.output,
         thinking: run.thinking,
@@ -108,7 +126,7 @@ export function useExecutionPanel() {
     });
 
     return result;
-  }, [activeRuns, completedRuns, historicalSnapshot]);
+  }, [activeRuns, completedRuns, historicalSnapshot, ollamaModels]);
 
   const hasRuns = runs.length > 0;
 

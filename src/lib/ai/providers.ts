@@ -1,7 +1,7 @@
 // AI Provider abstraction using Vercel AI SDK
 // Now uses the adapter registry for extensibility
 
-import { ProviderType, getModelById } from '@/config/providers';
+import { ProviderType, getModelConfigDynamic } from '@/config/providers';
 import { getProvider, getAllProviders } from './adapters';
 
 // Provider client cache (only for env var-based clients)
@@ -47,9 +47,10 @@ export interface ExecuteRequest {
 
 /**
  * Get a language model instance using the adapter registry
+ * Supports both static models and dynamically discovered Ollama models
  */
 export function getLanguageModel(modelId: string, apiKey?: string) {
-  const modelConfig = getModelById(modelId);
+  const modelConfig = getModelConfigDynamic(modelId);
   if (!modelConfig) {
     throw new Error(`Unknown model: ${modelId}`);
   }

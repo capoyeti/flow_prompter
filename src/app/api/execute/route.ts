@@ -1,7 +1,7 @@
 // Execute endpoint - streams prompt execution to a model
 import { NextRequest } from 'next/server';
 import { executePromptStream } from '@/lib/ai/execute';
-import { getModelById } from '@/config/providers';
+import { getModelConfigDynamic } from '@/config/providers';
 import { promptRepository, promptRunRepository } from '@/lib/db/repositories';
 import { z } from 'zod';
 
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
 
     const { promptId, promptContent, modelId, apiKey, parameters } = parsed.data;
 
-    // Validate model exists
-    const modelConfig = getModelById(modelId);
+    // Validate model exists (supports both static models and dynamic Ollama models)
+    const modelConfig = getModelConfigDynamic(modelId);
     if (!modelConfig) {
       return Response.json(
         { error: `Unknown model: ${modelId}` },

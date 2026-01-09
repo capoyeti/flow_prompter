@@ -298,6 +298,77 @@ export function getModelById(id: string): ModelConfig | undefined {
   return MODELS.find((m) => m.id === id);
 }
 
+/**
+ * Check if a model ID is an Ollama model (dynamically discovered)
+ */
+export function isOllamaModelId(modelId: string): boolean {
+  return modelId.startsWith('ollama-');
+}
+
+/**
+ * Extract the actual Ollama model name from our internal ID format
+ * e.g., "ollama-deepseek-r1-32b" -> "deepseek-r1:32b"
+ * e.g., "ollama-mistral-latest" -> "mistral:latest"
+ */
+export function extractOllamaModelName(modelId: string): string {
+  if (!isOllamaModelId(modelId)) {
+    return modelId;
+  }
+
+  // Remove "ollama-" prefix
+  const nameWithDashes = modelId.slice(7);
+
+  // Find the last dash that precedes a size tag (like 32b, 7b) or "latest"
+  // Pattern: -7b, -32b, -70b, -latest, etc.
+  const sizeTagMatch = nameWithDashes.match(/^(.+)-(\d+b|latest)$/i);
+
+  if (sizeTagMatch) {
+    // Replace the last dash with colon: "deepseek-r1-32b" -> "deepseek-r1:32b"
+    return `${sizeTagMatch[1]}:${sizeTagMatch[2]}`;
+  }
+
+  // No tag found, just return as-is (shouldn't happen in practice)
+  return nameWithDashes;
+}
+
+/**
+ * Get a ModelConfig for any model ID, including dynamically discovered Ollama models
+ * For Ollama models, creates a synthetic config since they're not in the static MODELS array
+ */
+export function getModelConfigDynamic(modelId: string): ModelConfig | undefined {
+  // First check static models
+  const staticModel = getModelById(modelId);
+  if (staticModel) {
+    return staticModel;
+  }
+
+  // Check if it's an Ollama model
+  if (isOllamaModelId(modelId)) {
+    const ollamaModelName = extractOllamaModelName(modelId);
+
+    // Create synthetic config for Ollama model
+    return {
+      id: modelId,
+      provider: 'ollama',
+      name: ollamaModelName, // The actual model name for Ollama API
+      displayName: ollamaModelName,
+      contextWindow: 4096, // Default for Ollama
+      capabilities: {
+        supportsStreaming: true,
+        supportsThinking: false, // Will be overridden by adapter if needed
+        supportsTemperature: true,
+        temperatureRange: { min: 0, max: 2, default: 0.7 },
+        supportsSystemPrompt: true,
+        supportsMaxTokens: true,
+        maxOutputTokens: 4096,
+      },
+      tier: 2,
+    };
+  }
+
+  return undefined;
+}
+
 export function getModelsByProvider(provider: ProviderType): ModelConfig[] {
   return MODELS.filter((m) => m.provider === provider);
 }
@@ -457,5 +528,6 @@ export function getProviderCardColors(provider: ProviderType): CardColors {
       tint: 'var(--provider-ollama-tint, rgba(26, 26, 46, 0.05))',
     },
   };
-  return colors[provider];
+  // Return the provider colors, or fallback to ollama colors for unknown providers
+  return colors[provider] ?? colors.ollama;
 }

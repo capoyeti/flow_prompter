@@ -13,7 +13,7 @@ import {
   Loader2,
   KeyRound,
 } from 'lucide-react';
-import { getProviderCardColors } from '@/config/providers';
+import { getProviderCardColors, ProviderType } from '@/config/providers';
 import { ApiKeyErrorContent } from './features/ApiKeyErrorContent/ApiKeyErrorContent';
 
 // ============================================
@@ -43,7 +43,7 @@ export function OutputCard({ run }: OutputCardProps) {
     setShowThinking(!showThinking);
   };
 
-  const colors = getProviderCardColors(run.provider as 'openai' | 'anthropic' | 'google');
+  const colors = getProviderCardColors(run.provider as ProviderType);
 
   const isLoading = run.status === 'streaming';
   const hasContent = run.content && run.content.length > 0;

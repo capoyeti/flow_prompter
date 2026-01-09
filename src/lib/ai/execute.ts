@@ -1,7 +1,7 @@
 // Prompt execution logic using Vercel AI SDK
 import { streamText } from 'ai';
 import { getLanguageModel, ExecuteRequest } from './providers';
-import { getModelById } from '@/config/providers';
+import { getModelConfigDynamic } from '@/config/providers';
 import { getProvider } from './adapters';
 
 export interface ExecuteOptions extends ExecuteRequest {
@@ -26,7 +26,7 @@ export interface ExecuteResult {
 export async function executePrompt(options: ExecuteOptions): Promise<ExecuteResult> {
   const { modelId, prompt, systemPrompt, apiKey, parameters, onStart, onComplete, onError } = options;
 
-  const modelConfig = getModelById(modelId);
+  const modelConfig = getModelConfigDynamic(modelId);
   if (!modelConfig) {
     throw new Error(`Unknown model: ${modelId}`);
   }
@@ -143,7 +143,7 @@ export async function executePrompt(options: ExecuteOptions): Promise<ExecuteRes
 export async function executePromptStream(options: ExecuteRequest) {
   const { modelId, prompt, systemPrompt, apiKey, parameters } = options;
 
-  const modelConfig = getModelById(modelId);
+  const modelConfig = getModelConfigDynamic(modelId);
   if (!modelConfig) {
     throw new Error(`Unknown model: ${modelId}`);
   }

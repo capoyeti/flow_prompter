@@ -21,7 +21,8 @@ export const deepseekAdapter: ProviderAdapter = {
 
   getLanguageModel(client: unknown, modelName: string): LanguageModel {
     const deepseekClient = client as DeepSeekClient;
-    return deepseekClient(modelName);
+    // Type assertion needed due to SDK version mismatch between V1/V2
+    return deepseekClient(modelName) as unknown as LanguageModel;
   },
 
   isConfigured(apiKey?: string): boolean {
